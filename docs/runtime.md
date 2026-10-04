@@ -1,6 +1,6 @@
 # Runtime bridge v1
 
-Each generated target script installs the same browser API at `OSAI.Components.v1`. The build configuration may change the namespace; component implementations do not contain it. The exact implementation version is `1.0.0`; the serialized contract version is `1.0`. Loading the same bridge again preserves component registrations, instances, and callbacks. An incompatible namespace occupant throws during script loading without replacing existing state.
+Each generated target script installs the same browser API at `OSAI.Components.v1`. The build configuration may change the namespace; component implementations do not contain it. The hardened implementation version is `2.0.0`; the serialized contract version remains `1.0` with the existing host call signatures. Loading the same bridge implementation again preserves component registrations, instances, and callbacks. A different implementation version in the same namespace throws during script loading without replacing existing state; coordinate host upgrades or use isolated documents.
 
 The browser API contains only the operations below. The internal `installBridge()` result also provides `registerComponent(definition)` and `inspect()` for build entry points and tests; hosts never receive a component controller or renderer reference. Component registration validates its manifest and bidirectional implementation metadata before accepting it. Registration of identical metadata is idempotent; conflicting metadata under the same component identifier is rejected.
 
@@ -79,9 +79,35 @@ Repeated Render does not call `create` again for a live identifier: the adapter 
 
 ## Full replacement and recreation
 
-An omitted optional property regains its declared default. An omitted required property fails; `null` is accepted only by schemas declaring it. Updates do not merge with the previous configuration. Both schema and component semantic checks run before a transaction is prepared. SDK implementations prepare without changing the live view, commit atomically, and restore the previous view in `rollback()` if commit throws. Events produced by a failed commit or its rollback are discarded.
+An omitted optional property regains its declared default. An omitted required property fails; `null` is accepted only by schemas declaring it. Updates do not merge with the previous configuration. Registration owns an immutable normalized contract and captured entry points. Configuration supplied to component code is an independent deeply frozen snapshot; event payloads are serialized at emission, so retained aliases cannot change delivery.
+
+Both schema and component semantic checks run before a transaction is prepared. SDK implementations prepare without changing the live view, commit atomically, and restore the previous view in `rollback()` if commit throws. The runtime opens a provisional event/resource transaction before preparation. Preparation, commit and rollback emissions are discarded on failure; previously queued events remain eligible. A successful commit records configuration before publishing its buffered events. New managed allocations are removed on failure; release requests for previously committed resources take effect only after successful commit. Provider rollback must restore its own view/state and retained resource handles.
 
 If a changed property is marked `recreate`, `update` returns `recreation-required` with `/properties/<name>`, leaving the current instance untouched. The adapter then explicitly unregisters callbacks or disposes, calls `create` with the complete next configuration, and registers fresh callbacks. IDs may be reused only after disposal. Normal live updates retain their root, identity, and subscriptions.
+
+## Fault inspection and recovery
+
+A throwing rollback returns `instance-faulted`. The runtime stops delivery, attempts every cleanup, and retains a tombstone in `getInfo().value.faultedInstances`. Its entry contains only `instanceId` and the stable fault code. Later update/invoke calls fail until explicit disposal acknowledges the fault. Cleanup failures remain counted even after acknowledgment; disposal does not assert that a throwing provider released its resources. Siblings remain usable.
+
+Same-instance update, invocation or disposal during an active lifecycle operation returns `operation-in-progress`. Host event callbacks run after commit, outside that transition, and can perform ordinary lifecycle calls. Do not retry a rejected nested call recursively.
+
+This recovery helper runs only when the host has chosen to recreate a faulted instance. Pass the last accepted complete configuration and an existing host container. After successful recreation, register fresh event callbacks. Other errors preserve their result for the host to handle.
+
+<!-- executable: fault-recovery -->
+
+```javascript
+function updateWithRecovery(api, componentId, instanceId, hostId, nextJson, acceptedJson) {
+  const updated = JSON.parse(api.update(instanceId, nextJson));
+  if (updated.code !== 'instance-faulted') return updated;
+  const info = JSON.parse(api.getInfo()).value;
+  if (!info.faultedInstances.some((entry) => entry.instanceId === instanceId)) {
+    throw new Error('Fault inspection did not match the requested instance.');
+  }
+  const disposed = JSON.parse(api.dispose(instanceId));
+  if (!disposed.ok) return disposed;
+  return JSON.parse(api.create(componentId, instanceId, hostId, acceptedJson));
+}
+```
 
 ## Events and synchronous commands
 
@@ -102,6 +128,8 @@ Command arguments and results are schema-validated. A Promise or thenable return
 | `invalid-command-result`, `unsupported-execution-mode`                                                   | The implementation violated its synchronous command contract.                       |
 | `incompatible-component`, `implementation-contract-error`                                                | Registration metadata or lifecycle controller violates the SDK contract.            |
 | `internal-error`                                                                                         | Unexpected implementation failure, with scrubbed host details.                      |
+| `instance-faulted`                                                                                       | Rollback failed; inspect and explicitly dispose before recreation.                  |
+| `operation-in-progress`                                                                                  | A same-instance lifecycle operation is active; the nested operation did not run.    |
 
 Diagnostics additionally include `event-contract-error`, `callback-error`, `cleanup-error`, and `shortcut-conflict`. A diagnostic does not expose its original exception through `getInfo`.
 
@@ -115,4 +143,78 @@ The SDK context exposes the host container, an owned child root, an instance ID,
 
 `context.registerShortcut(shortcut, handler, options?)` accepts modifier-order-independent combinations such as `Ctrl+K`, `Meta+K`, `Mod+K`, and `Alt+Shift+P`. `Mod` means Meta on Apple platforms and Ctrl elsewhere. The earliest live registration owns a normalized shortcut; later registrations receive a diagnostic and optionally `onConflict`, remain contenders, and take ownership when earlier claims are released. One document listener serves all claims. Composition, repeated keydowns, already-handled gestures, and editable origins outside an open owned root are ignored. Eligible gestures prevent their default action before calling the owner.
 
-`getInfo().value` reports `instances`, `subscriptions`, `pendingEvents`, and `resources`: live listeners, timers, observers, animationFrames, workers, portals, backgroundLocks, ownedRoots, disposables, and shortcutClaims. These counts drive leak gates. They are live measurements rather than cumulative registration totals. A managed release that throws remains counted after instance removal because cleanup was not confirmed; other resources are still released. After all instances are successfully disposed, each must be zero.
+`getInfo().value` reports `instances` (including fault tombstones), `faultedInstances`, `subscriptions`, `pendingEvents`, and `resources`: live listeners, timers, observers, animationFrames, workers, portals, backgroundLocks, ownedRoots, disposables, and shortcutClaims. These counters describe managed resources and must be checked alongside independent browser observations; zero counters alone cannot establish leak freedom. A managed release that throws remains counted after instance removal because cleanup was not confirmed; other resources are still released. After all instances are successfully disposed, each must be zero.
+
+# Managed work and provider ownership
+
+Profiles are versioned data. The shipped profiles admit at most 8 MiB of UTF-8 JSON,
+64 levels of nesting, 1,024 queued events and 64 deliveries per timer turn.
+Admission rejects the newest overflowing event with `event-queue-full`; accepted
+events retain FIFO order. `json-limit-exceeded` identifies the limit without
+including payload values. These bounds are admission limits, not performance claims.
+
+A public command must return its synchronous JSON acknowledgement immediately.
+Start asynchronous work with `resources.operation(key, work, complete, failed)`
+and emit the manifest's typed completion event from `complete`. A replacement for
+the same key cancels the previous generation; different keys are independent.
+Work must respect the supplied signal and must not mutate the view or emit from
+inside the work promise. Only the guarded completion callback may apply results.
+Cancellation suppresses late results even when a provider ignores the signal.
+Use the operation's child scope for timers, listeners and worker ownership.
+
+This executable example uses local promises and no network. `scope` is a managed
+child scope; `deliver` represents the component's typed completion emission.
+
+<!-- executable: managed-operations -->
+
+```javascript
+function startLocal(value) {
+  const operation = scope.operation('local', () => Promise.resolve(value), deliver);
+  return { accepted: true, generation: operation.generation };
+}
+startLocal('superseded');
+startLocal('current');
+await Promise.resolve();
+await Promise.resolve();
+startLocal('disposed');
+scope.dispose();
+await Promise.resolve();
+await Promise.resolve();
+```
+
+An `imperative-provider` profile permits `adoptProvider`. The literal contract
+names its allocations and obligations. Register cleanup before a provider can
+allocate, including initialization that might throw. Cleanup must be synchronous,
+idempotent and complete. Updates must prepare changes without changing the live
+view and support rollback. Adoption owns disposal; it does not make an arbitrary
+framework transactional or cancel undocumented internal work.
+
+<!-- executable: provider-ownership -->
+
+```javascript
+const provider = resources.adoptProvider(
+  {
+    id: 'local-listener',
+    capabilities: ['listeners'],
+    partialInitialization: 'register-cleanup-before-allocation',
+    update: 'transactional',
+    disposal: 'scope',
+  },
+  (scope) => {
+    const handler = () => deliver('provider');
+    scope.add(() => document.removeEventListener('local-provider', handler));
+    document.addEventListener('local-provider', handler);
+    return { ready: true };
+  },
+);
+document.dispatchEvent(new Event('local-provider'));
+provider.dispose();
+document.dispatchEvent(new Event('local-provider'));
+```
+
+The source guard recognizes direct allocations, simple aliases and literal
+property access. Use `resources` or `scope` for managed calls, and `scope` or
+`owner` for cleanup registration inside an adoption callback. Computed reflection,
+provider internals and arbitrary frameworks require independent browser checks;
+static scanning is not a hostile-code sandbox. No profile grants network access:
+origins must also be declared in the manifest and admitted by the host CSP.

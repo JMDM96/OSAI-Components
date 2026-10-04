@@ -1,5 +1,13 @@
 # Authoring a component
 
+## Hardening migration
+
+The hardening change introduces a breaking **authoring** contract: component-local generated bindings distinguish writable host inputs from deeply read-only normalized configuration and bind every command and event to its schema. Regenerate bindings before compilation and check for drift in CI. Generic JSON casts are not a migration strategy. Runtime validation remains required for numeric bounds, patterns and other constraints not expressible in TypeScript.
+
+Certification descriptors and capability profiles start at format `1.0`, independently of the existing manifest and browser bridge contract `1.0`. Each certifiable component must supply executable public-member scenarios and select a supported profile. Mandatory shared scenarios cannot be disabled. Unknown descriptor/profile versions fail closed. Profile limits must be finite and reviewed before qualification; candidate measurements cannot set their own passing thresholds.
+
+Existing browser host signatures stay supported: `create(componentId, instanceId, hostId, configurationJson)`, `update(instanceId, configurationJson)`, `invoke(instanceId, commandName, argumentsJson)`, callback registration/unregistration, inspection and `dispose(instanceId)`. Commands remain synchronous and JSON-based. New internal managed operations report completion through declared events. See [format and release migration](distribution.md#hardening-format-migration).
+
 Start from `tests/fixtures/minimal`, which contains a complete small component, manifest, referenced schema, and scoped stylesheet. The first production example is `components/command-palette`. A component must implement the SDK and describe its complete public surface; unrelated TypeScript projects are rejected at validation.
 
 Run `npm ci`, then `npm run validate` for production component validation. To validate the complete starter example directly, run `npm run validate -- tests/fixtures/minimal/component.manifest.json`. Run `npx vitest run packages/contract-schemas/src/contract.test.ts packages/component-sdk/src/conformance.test.ts` to check the minimal fixture and the negative contract fixtures. `npm run typecheck` includes SDK compile-time assertions that asynchronous commands, DOM values, and arbitrary render functions are not accepted. `npm run verify` validates, packages, and exercises the production component through all local release gates.
@@ -17,6 +25,55 @@ Schemas can be embedded or referenced using local JSON files and JSON Pointer fr
 The CSP-safe runtime interpreter supports JSON types and unions, properties, required, additionalProperties, items, enum, const, anyOf, oneOf, allOf, not, string lengths and pattern, numeric bounds and multipleOf, array lengths and uniqueItems, and object property counts. Annotation keywords `$schema`, `$id`, `$defs`, `definitions`, title, description, and default are accepted. Unsupported keywords fail explicitly; the interpreter never compiles schema strings into JavaScript. Avoid arbitrary regular expressions supplied by end users: patterns are reviewed component source.
 
 ## SDK implementation
+
+Run `npm run bindings` after editing a manifest or schema. It generates each component's `src/generated.ts` using the normalized contract, including a contract digest. `npm run bindings:check` performs a read-only drift check; `npm run typecheck` runs that check before compiling implementations. Changing a runtime-only schema constraint also invalidates the digest. Never hand-edit generated bindings.
+
+Use `HostInput` for caller input, `Configuration` for the complete deeply read-only normalized values, and `Bindings` to specialize the SDK definition, context and controller. A property's `required` flag determines host requiredness; optional defaults are present in normalized configuration; read-only properties are excluded from host input. Nested optional members stay optional unless the schema itself requires them. Nullability, unions and nested structures are preserved.
+
+The minimal fixture supplies the normalized manifest used by this runnable example. Its generated command requires an empty object and returns text; its event requires a text label. The documentation compiler checks this example without member-typing bypass casts.
+
+<!-- executable: typed-minimal -->
+
+```typescript
+import { defineComponent, implementationContractFromManifest } from '@osai/component-sdk';
+import { manifest } from '../../../tests/fixtures/minimal/src/index.js';
+import type { Bindings } from '../../../tests/fixtures/minimal/src/generated.js';
+
+export const example = defineComponent<Bindings>({
+  manifest,
+  contract: implementationContractFromManifest(manifest),
+  create(context, initial) {
+    let configuration = initial;
+    context.root.textContent = configuration.label;
+    return {
+      prepareUpdate(next) {
+        const previous = configuration;
+        return {
+          commit() {
+            configuration = next;
+            context.root.textContent = configuration.label;
+          },
+          rollback() {
+            configuration = previous;
+            context.root.textContent = configuration.label;
+          },
+        };
+      },
+      commands: {
+        read() {
+          context.emit('read', { label: configuration.label });
+          return configuration.label;
+        },
+      },
+      dispose() {
+        context.root.replaceChildren();
+      },
+    };
+  },
+});
+```
+
+In a component's own entry, import its normalized manifest and `./generated.js`. The paths above are relative to the documentation compiler's temporary fixture. TypeScript cannot prove JSON numeric finiteness, numeric ranges, regex patterns, distinct array values, one-of exclusivity or cross-field predicates. Runtime schema/semantic checks remain authoritative. A mixed object with typed additional properties may be widened to a JSON index signature because TypeScript requires an index signature to admit its named members; runtime validation still enforces the declared additional-property schema.
 
 Export a named `componentDefinition` created with `defineComponent`, containing the normalized manifest, its `contract` member metadata, optional cross-field `validateConfig`, and synchronous `create(context, configuration)`. The manifest-to-implementation metadata check compares properties, command arguments/results/execution, and events in both directions. `implementationContractFromManifest` provides baseline metadata; behavior tests and runtime result/event checks verify the implementation behind those declarations. `generateTypeDeclarations` in `@osai/contract-schemas/authoring` produces the public TypeScript declarations.
 

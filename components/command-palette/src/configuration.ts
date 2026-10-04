@@ -1,23 +1,8 @@
-import type { Diagnostic, JsonObject } from '@osai/component-sdk';
+import type { Diagnostic } from '@osai/component-sdk';
+import type { Configuration, DeepReadonly, HostInput } from './generated.js';
 
-export interface CommandItem {
-  id: string;
-  label: string;
-  description?: string;
-  keywords?: string[];
-  group?: string;
-  disabled?: boolean;
-  metadata?: { hint?: string };
-}
-
-export interface PaletteConfiguration {
-  commands: CommandItem[];
-  title: string;
-  placeholder: string;
-  emptyMessage: string;
-  shortcut: string;
-  closeOnSelect: boolean;
-}
+export type CommandItem = Configuration['commands'][number];
+export type PaletteConfiguration = Configuration;
 
 export const configurationDefaults = {
   title: 'Command palette',
@@ -32,7 +17,9 @@ function record(value: unknown): value is Record<string, unknown> {
 }
 
 /** Cross-field rules supplement JSON Schema before the bridge changes any state. */
-export function validateConfiguration(value: JsonObject): Diagnostic[] {
+export function validateConfiguration(value: unknown): Diagnostic[] {
+  if (!record(value))
+    return [{ code: 'invalid-config', path: '', message: 'Expected a configuration object.' }];
   const diagnostics: Diagnostic[] = [];
   const add = (path: string, message: string) => {
     diagnostics.push({ code: 'invalid-config', path, message });
@@ -115,10 +102,10 @@ export function validateConfiguration(value: JsonObject): Diagnostic[] {
 }
 
 /** Copy caller data so later host-side mutation cannot change accepted state. */
-export function normalizeConfiguration(value: JsonObject): PaletteConfiguration {
+export function normalizeConfiguration(value: DeepReadonly<HostInput>): PaletteConfiguration {
   const diagnostics = validateConfiguration(value);
   if (diagnostics.length) throw new Error('Invalid command-palette configuration.');
-  const commands = value.commands as unknown as CommandItem[];
+  const commands = value.commands;
   return {
     ...configurationDefaults,
     ...value,
@@ -127,7 +114,7 @@ export function normalizeConfiguration(value: JsonObject): PaletteConfiguration 
       ...(item.keywords ? { keywords: [...item.keywords] } : {}),
       ...(item.metadata ? { metadata: { ...item.metadata } } : {}),
     })),
-  } as PaletteConfiguration;
+  };
 }
 
 export function normalizeQuery(query: string): string {

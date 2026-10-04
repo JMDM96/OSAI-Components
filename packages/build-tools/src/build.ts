@@ -1,6 +1,6 @@
 import { build as bundle } from 'esbuild';
-import { readFile, writeFile, mkdir, mkdtemp, cp } from 'node:fs/promises';
-import { dirname, resolve, join } from 'node:path';
+import { readFile, writeFile, mkdir, mkdtemp } from 'node:fs/promises';
+import { dirname, resolve, join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -9,7 +9,12 @@ import {
   validateImplementationParity,
   validateJsonSchema,
 } from '@osai/contract-schemas';
-import type { ComponentManifest, Target, JsonSchema } from '@osai/contract-schemas';
+import type {
+  ComponentManifest,
+  Target,
+  JsonSchema,
+  ReleaseResources,
+} from '@osai/contract-schemas';
 import type { ComponentDefinition } from '@osai/component-sdk';
 import {
   loadManifest,
@@ -32,6 +37,12 @@ import { checksum, payloadChecksums, writeJson } from './release.js';
 import { dependencyInventory, dependencyNotices } from './dependency.js';
 import { externalGlobals, targetProfile } from './bundler.js';
 import type { TargetOverride } from './bundler.js';
+import { selectComponents } from './registry.js';
+import type { ComponentSelection } from './registry.js';
+import { scanManagedAllocations } from './ownership.js';
+import { compileAssets, mergeGraphs, graphAsset } from './asset-graph.js';
+import { loadCertification, SUITE_VERSION } from './certification.js';
+import { capabilityProfile } from '@osai/contract-schemas';
 
 export interface BuildConfig {
   namespace: string;
@@ -41,6 +52,26 @@ export interface BuildConfig {
   target: string;
   policy: string;
   targetOverrides?: Partial<Record<Target, TargetOverride>>;
+}
+function resourceCsp(manifest: ComponentManifest): Record<string, unknown> {
+  const sources = (type: string) =>
+    [
+      ...new Set(
+        manifest.assets
+          .filter((asset) => asset.type === type)
+          .map((asset) => asset.origin ?? "'self'"),
+      ),
+    ].sort();
+  return {
+    scriptSrc: [...new Set(["'self'", ...sources('script')])],
+    styleSrc: [...new Set(["'self'", ...sources('style')])],
+    imageSrc: sources('image'),
+    fontSrc: sources('font'),
+    workerSrc: sources('worker'),
+    frameSrc: [],
+    connectSrc: manifest.capabilities.networkOrigins,
+    dependencies: manifest.dependencies.filter((item) => !item.bundled).map((item) => item.csp),
+  };
 }
 export interface BuiltRelease {
   root: string;
@@ -58,7 +89,10 @@ export interface BuiltRelease {
     }
   >;
 }
-export async function readConfiguration(root: string): Promise<BuildConfig> {
+export async function readConfiguration(
+  root: string,
+  selection?: ComponentSelection,
+): Promise<BuildConfig> {
   const config = JSON.parse(await readFile(join(root, 'build.config.json'), 'utf8')) as BuildConfig;
   if (
     config.target !== 'es2017' ||
@@ -70,6 +104,17 @@ export async function readConfiguration(root: string): Promise<BuildConfig> {
   for (const target of Object.keys(config.targetOverrides ?? {}))
     if (!config.targets.includes(target as Target))
       throw new Error(`Override for undeclared target: ${target}`);
+  if (selection) {
+    const components = await selectComponents(root, selection);
+    if (components.length !== 1)
+      throw new Error('This pipeline stage requires one selected component.');
+    const component = components[0]!;
+    return {
+      ...config,
+      component: component.manifest.componentId,
+      manifest: relative(root, component.manifestFile).replaceAll('\\', '/'),
+    };
+  }
   return config;
 }
 function requireClean(issues: unknown[], label: string): void {
@@ -119,11 +164,20 @@ export { dependencyInventory } from './dependency.js';
 
 export async function buildRelease(
   root: string,
-  options: { outputRoot?: string; manifestFile?: string } = {},
+  options: { outputRoot?: string; manifestFile?: string; selection?: ComponentSelection } = {},
 ): Promise<BuiltRelease> {
-  const config = await readConfiguration(root);
+  const selection =
+    options.selection ?? (options.manifestFile ? { manifestFile: options.manifestFile } : {});
+  const config = await readConfiguration(root, selection);
   const policy = await loadPolicy(resolve(root, config.policy));
-  const { manifest, css, directory } = await validateComponent(root, options.manifestFile);
+  const { manifest, css, directory, definition } = await validateComponent(root, config.manifest);
+  const [selected] = await selectComponents(root, selection);
+  const certification = await loadCertification(selected!, root);
+  if (
+    canonicalJson(definition.profile ?? capabilityProfile()) !==
+    canonicalJson(certification.profile)
+  )
+    throw new Error('Runtime profile differs from certification authority.');
   for (const target of config.targets)
     if (!manifest.targets.includes(target) || !policy.targets.includes(target))
       throw new Error(`Unsupported target: ${target}`);
@@ -139,52 +193,120 @@ export async function buildRelease(
   const output = resolve(
     options.outputRoot ?? join(root, 'dist', manifest.componentId, manifest.version),
   );
+  if (!options.outputRoot) {
+    let records: { componentId: string; version: string }[] = [];
+    try {
+      records = JSON.parse(
+        await readFile(join(root, 'releases/catalog.json'), 'utf8'),
+      ) as typeof records;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
+    if (
+      records.some(
+        (record) =>
+          record.componentId === manifest.componentId && record.version === manifest.version,
+      )
+    )
+      throw new Error(
+        'Registered release payloads cannot be rebuilt in place. Use a new version or an isolated diagnostic output.',
+      );
+  }
   await mkdir(output, { recursive: true });
   const measurements = {} as BuiltRelease['measurements'];
   const componentEntry = resolve(directory, manifest.entry);
   const entry = `import {installBridge} from '@osai/runtime-bridge';\nimport {componentDefinition} from ${JSON.stringify(componentEntry.replaceAll('\\', '/'))};\nconst result = JSON.parse(installBridge({namespace:${JSON.stringify(config.namespace)}}).registerComponent(componentDefinition));\nif (!result.ok) throw new Error(result.code + ': ' + result.message);\n`;
   const compiledTargets = await Promise.all(
     config.targets.map(async (target) => {
-      const compiled = await bundle({
-        absWorkingDir: root,
-        stdin: {
-          contents: entry,
-          resolveDir: root,
-          sourcefile: 'component-entry.ts',
-          loader: 'ts',
-        },
-        bundle: true,
-        write: false,
-        minify: true,
-        format: 'iife',
-        platform: 'browser',
-        target: config.target,
-        charset: 'utf8',
-        legalComments: 'none',
-        sourcemap: false,
-        metafile: true,
-        treeShaking: true,
-        logLevel: 'silent',
-        plugins: [externalGlobals(manifest)],
-        define: Object.fromEntries(
+      const auxiliary = await compileAssets(
+        root,
+        directory,
+        manifest,
+        config.namespace,
+        Object.fromEntries(
           Object.entries(config.targetOverrides?.[target]?.defines ?? {}).map(([name, value]) => [
             name,
             JSON.stringify(value),
           ]),
         ),
-      });
+      );
+      const compileMain = (contents: string) =>
+        bundle({
+          absWorkingDir: root,
+          stdin: {
+            contents,
+            resolveDir: root,
+            sourcefile: 'component-entry.ts',
+            loader: 'ts',
+          },
+          bundle: true,
+          write: false,
+          minify: true,
+          format: 'iife',
+          platform: 'browser',
+          target: config.target,
+          charset: 'utf8',
+          legalComments: 'none',
+          sourcemap: false,
+          metafile: true,
+          treeShaking: true,
+          logLevel: 'silent',
+          plugins: [externalGlobals(manifest)],
+          define: Object.fromEntries(
+            Object.entries(config.targetOverrides?.[target]?.defines ?? {}).map(([name, value]) => [
+              name,
+              JSON.stringify(value),
+            ]),
+          ),
+        });
+      const baseline = await compileMain(entry);
+      const resources: ReleaseResources = {
+        schemaVersion: '2.0',
+        componentId: manifest.componentId,
+        version: manifest.version,
+        target,
+        releaseId: checksum(
+          canonicalJson({
+            manifest,
+            script: baseline.outputFiles?.[0]?.text,
+            assets: auxiliary.assets,
+          }),
+        ),
+        assets: auxiliary.assets.map(({ id, type, integrity, origin }) => ({
+          id,
+          type,
+          integrity,
+          ...(origin ? { origin } : {}),
+        })),
+      };
+      const compiled = await compileMain(
+        entry.replace(
+          'registerComponent(componentDefinition)',
+          `registerComponent(componentDefinition, ${JSON.stringify(resources)})`,
+        ),
+      );
       const script = compiled.outputFiles?.[0]?.text;
       if (!script || !compiled.metafile) throw new Error('Bundler produced no browser script.');
+      for (const input of Object.keys(compiled.metafile.inputs)) {
+        const source = resolve(root, input);
+        const local = relative(directory, source).replaceAll('\\', '/');
+        if (!local.startsWith('../') && !local.includes(':') && /\.[cm]?[jt]s$/.test(local))
+          requireClean(
+            scanManagedAllocations(await readFile(source, 'utf8')),
+            'Component resource ownership failed',
+          );
+      }
       const findings = scanJavaScript(script, manifest, config.namespace);
       requireClean(findings, 'Production security scan failed');
-      const inventory = await dependencyInventory(root, compiled.metafile, manifest, policy);
-      const includedComponents = Object.keys(compiled.metafile.inputs).filter(
+      const graph = mergeGraphs([compiled.metafile, ...auxiliary.graphs]);
+      const inventory = await dependencyInventory(root, graph, manifest, policy);
+      const includedComponents = Object.keys(graph.inputs).filter(
         (input) =>
           input.replaceAll('\\', '/').startsWith('components/') &&
           !input.replaceAll('\\', '/').startsWith(`components/${manifest.componentId}/`),
       );
       requireClean(includedComponents, 'Unrelated catalog component was bundled');
-      return { target, script, findings, inventory, metafile: compiled.metafile };
+      return { target, script, findings, inventory, auxiliary, resources, metafile: graph };
     }),
   );
   const inventoryMap = new Map(
@@ -215,9 +337,18 @@ export async function buildRelease(
       .filter(([, property]) => property.required)
       .map(([name]) => name),
   };
-  for (const { target, script, findings } of compiledTargets) {
-    const jsBytes = gzipSync(script, { level: 9 }).byteLength;
-    if (jsBytes > policy.budgets.javascriptGzipBytes || cssBytes > policy.budgets.cssGzipBytes)
+  for (const { target, script, findings, auxiliary, resources } of compiledTargets) {
+    const jsBytes =
+      gzipSync(script, { level: 9 }).byteLength +
+      auxiliary.assets
+        .filter((asset) => ['script', 'worker'].includes(asset.type))
+        .reduce((total, asset) => total + asset.gzipBytes, 0);
+    const allCssBytes =
+      cssBytes +
+      auxiliary.assets
+        .filter((asset) => asset.type === 'style')
+        .reduce((total, asset) => total + asset.gzipBytes, 0);
+    if (jsBytes > policy.budgets.javascriptGzipBytes || allCssBytes > policy.budgets.cssGzipBytes)
       throw new Error(
         `Bundle budget exceeded for ${target}: JS ${jsBytes}/${policy.budgets.javascriptGzipBytes}; CSS ${cssBytes}/${policy.budgets.cssGzipBytes}.`,
       );
@@ -230,9 +361,39 @@ export async function buildRelease(
       join(targetRoot, 'target.json'),
       targetProfile(target, config.targetOverrides?.[target]),
     );
-    const adapter = generateAdapter(manifest, target, config.namespace);
+    const resourceMetadata = {
+      schemaVersion: '2.0' as const,
+      registration: resources,
+      assets: [
+        graphAsset(`${manifest.componentId}.js`, 'script', script, 'principal'),
+        graphAsset(`${manifest.componentId}.css`, 'style', style, 'principal'),
+        ...auxiliary.assets,
+      ],
+      dependencies: manifest.dependencies
+        .filter((item) => !item.bundled)
+        .sort((a, b) => a.loadOrder! - b.loadOrder!),
+      licenses: inventory.map(({ name, version, license }) => ({ name, version, license })),
+      loadOrder: [
+        ...manifest.dependencies
+          .filter((item) => !item.bundled)
+          .sort((a, b) => a.loadOrder! - b.loadOrder!)
+          .map((item) => `external:${item.name}`),
+        ...manifest.assets
+          .filter((item) => item.type === 'script' || item.type === 'style')
+          .map((item) => item.path),
+        `${manifest.componentId}.css`,
+        `${manifest.componentId}.js`,
+        'registerResources',
+        'create',
+      ],
+      csp: resourceCsp(manifest),
+      nativeMapping:
+        'Import all local assets, pin external dependencies, apply CSP, register logical URL/integrity mappings before Ready/create. Worker and CSS-relative asset paths must preserve their declared directory layout.',
+    };
+    await writeJson(join(targetRoot, 'resources.json'), resourceMetadata);
+    const adapter = generateAdapter(manifest, target, config.namespace, resourceMetadata);
     requireClean(
-      validateAdapter(adapter, manifest, target, config.namespace),
+      validateAdapter(adapter, manifest, target, config.namespace, resourceMetadata),
       'Adapter validation failed',
     );
     await writeJson(join(targetRoot, 'adapter.json'), adapter);
@@ -263,6 +424,7 @@ export async function buildRelease(
           'mentor-recipe.json',
           'integration.md',
           'csp.json',
+          'resources.json',
           'licenses.txt',
           `${manifest.componentId}.js`,
           `${manifest.componentId}.css`,
@@ -271,7 +433,7 @@ export async function buildRelease(
         throw new Error(`Local asset collides with generated metadata: ${asset.path}`);
       const destination = resolve(targetRoot, asset.path);
       await mkdir(dirname(destination), { recursive: true });
-      await cp(resolve(directory, asset.path), destination);
+      await writeFile(destination, auxiliary.files.get(asset.path)!);
     }
     const sources = (type: string) =>
       [
@@ -295,12 +457,14 @@ export async function buildRelease(
     await writeFile(join(targetRoot, 'licenses.txt'), dependencyNotices(inventory));
     measurements[target] = {
       javascriptGzipBytes: jsBytes,
-      cssGzipBytes: cssBytes,
+      cssGzipBytes: allCssBytes,
       securityFindings: findings.length,
       dependencyFindings: 0,
     };
   }
   await mkdir(join(output, 'shared/types'), { recursive: true });
+  const { scenarioModule: _scenarioModule, ...certificate } = certification;
+  await writeJson(join(output, 'shared/certification.json'), certificate);
   await writeFile(join(output, 'shared/types/index.d.ts'), generateTypeDeclarations(manifest));
   await writeJson(join(output, 'shared/dependencies.json'), inventory);
   const packageIds = new Map(
@@ -382,6 +546,10 @@ export async function buildRelease(
     join(output, 'shared/component.mjs'),
     esm.outputFiles?.[0]?.contents ?? new Uint8Array(),
   );
+  requireClean(
+    scanJavaScript(esm.outputFiles?.[0]?.text ?? '', manifest, config.namespace),
+    'Authoring module security scan failed',
+  );
   const checksums = await payloadChecksums(output);
   await writeFile(
     join(output, 'shared/checksums.sha256'),
@@ -398,13 +566,23 @@ export async function buildRelease(
   });
   for (const target of config.targets) {
     const evidence: CompatibilityEvidence = {
-      schemaVersion: '1.0',
+      schemaVersion: '2.0',
       componentId: manifest.componentId,
       version: manifest.version,
       target,
       status: 'generated',
       policyVersion: policy.policyVersion,
-      suiteVersion: '1.0.0',
+      suiteVersion: SUITE_VERSION,
+      provenance: {
+        contractHash: certification.contractHash,
+        profileHash: certification.profileHash,
+        descriptorHash: certification.descriptorHash,
+        suiteHash: certification.suiteHash,
+        policyHash: checksum(canonicalJson(policy)),
+        profileId: certification.profile.profileId,
+        profileVersion: certification.profile.version,
+      },
+      scenarios: [],
       artifactChecksums: checksums,
       browserResults: [],
       gates: [],
@@ -481,9 +659,59 @@ export async function inspectRelease(root: string): Promise<void> {
     same([...manifest.targets].sort(), [...release.targets].sort(), 'manifest target inventory');
     if (commonManifest) same(manifest, commonManifest, 'cross-target manifest');
     else commonManifest = manifest;
-    const adapter = generateAdapter(manifest, target, inputs.namespace);
+    const rawAdapter = (await readJson(`${target}/adapter.json`)) as { schemaVersion: string };
+    const metadata =
+      rawAdapter.schemaVersion === '2.0'
+        ? ((await readJson(
+            `${target}/resources.json`,
+          )) as import('@osai/adapter-schema').ResourceMetadata)
+        : undefined;
+    if (metadata) {
+      expectedFiles.add('shared/certification.json');
+      expectedFiles.add(`${target}/resources.json`);
+      const expectedAssets = [
+        {
+          path: `${manifest.componentId}.js`,
+          type: 'script' as const,
+          usage: 'principal' as const,
+        },
+        {
+          path: `${manifest.componentId}.css`,
+          type: 'style' as const,
+          usage: 'principal' as const,
+        },
+        ...manifest.assets.map((asset) => ({
+          ...asset,
+          usage: asset.origin ? ('external' as const) : ('auxiliary' as const),
+        })),
+      ];
+      const graph = await Promise.all(
+        expectedAssets.map(async (asset) =>
+          'origin' in asset && asset.origin
+            ? {
+                id: asset.path,
+                path: asset.path,
+                type: asset.type,
+                usage: asset.usage,
+                origin: asset.origin,
+                integrity: asset.integrity,
+                bytes: 0,
+                gzipBytes: 0,
+              }
+            : graphAsset(
+                asset.path,
+                asset.type,
+                await readFile(join(root, target, asset.path)),
+                asset.usage,
+              ),
+        ),
+      );
+      same(metadata.assets, graph, 'resource graph');
+      same(metadata.csp, resourceCsp(manifest), 'resource CSP');
+    }
+    const adapter = generateAdapter(manifest, target, inputs.namespace, metadata);
     requireClean(
-      validateAdapter(await readJson(`${target}/adapter.json`), manifest, target, inputs.namespace),
+      validateAdapter(rawAdapter, manifest, target, inputs.namespace, metadata),
       'Packaged adapter drift',
     );
     same(

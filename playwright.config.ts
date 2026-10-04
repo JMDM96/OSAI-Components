@@ -8,6 +8,12 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './tests/browser',
+  testMatch:
+    process.env.OSAI_WORKBENCH === 'true'
+      ? ['workbench.spec.ts']
+      : process.env.OSAI_COMPONENT && process.env.OSAI_COMPONENT !== 'command-palette'
+        ? ['shared.spec.ts']
+        : ['pipeline.spec.ts', 'shared.spec.ts'],
   fullyParallel: true,
   workers: process.env.CI ? 2 : 3,
   retries: 0,
@@ -21,8 +27,16 @@ export default defineConfig({
       caret: 'hide',
     },
   },
-  reporter: [['list'], ['json', { outputFile: 'test-results/browser.json' }]],
-  outputDir: 'test-results/browser-artifacts',
+  reporter: [
+    ['list'],
+    [
+      'json',
+      {
+        outputFile: `test-results/${process.env.OSAI_WORKBENCH === 'true' ? 'workbench' : (process.env.OSAI_COMPONENT ?? 'command-palette')}/browser.json`,
+      },
+    ],
+  ],
+  outputDir: `test-results/${process.env.OSAI_WORKBENCH === 'true' ? 'workbench' : (process.env.OSAI_COMPONENT ?? 'command-palette')}/browser-artifacts`,
   snapshotPathTemplate: '{testDir}/baselines/{projectName}/{arg}{ext}',
   use: {
     baseURL,

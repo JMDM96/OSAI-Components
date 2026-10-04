@@ -1,4 +1,5 @@
-import type { ComponentContext, ComponentController, JsonObject } from '@osai/component-sdk';
+import type { ComponentContext, ComponentController } from '@osai/component-sdk';
+import type { Bindings, Configuration } from './generated.js';
 import { filterCommands, normalizeConfiguration } from './configuration.js';
 import type { CommandItem, PaletteConfiguration } from './configuration.js';
 
@@ -6,9 +7,9 @@ type CloseReason = 'host' | 'escape' | 'selection' | 'shortcut' | 'button';
 
 /** Creates owned light DOM only; every long-lived resource belongs to the SDK scope. */
 export function createCommandPalette(
-  context: ComponentContext,
-  initial: JsonObject,
-): ComponentController {
+  context: ComponentContext<Bindings>,
+  initial: Configuration,
+): ComponentController<Bindings> {
   let configuration = normalizeConfiguration(initial);
   const { root, host, instanceId, resources } = context;
   const document = root.ownerDocument;
@@ -95,9 +96,9 @@ export function createCommandPalette(
   overlay.append(dialog);
   root.append(overlay);
 
-  function emit(name: string, payload: JsonObject = {}): void {
-    if (!disposed) context.emit(name, { instanceId, ...payload });
-  }
+  const emit: ComponentContext<Bindings>['emit'] = (name, payload) => {
+    if (!disposed) context.emit(name, payload);
+  };
 
   function setActive(id: string | undefined, scroll: boolean): void {
     activeId = id;
@@ -194,7 +195,7 @@ export function createCommandPalette(
     input.setAttribute('aria-expanded', 'true');
     releaseBackground = resources.lockBackground(root);
     input.focus({ preventScroll: true });
-    emit('opened');
+    emit('opened', { instanceId });
   }
 
   function close(reason: CloseReason, notify = true): void {
@@ -207,14 +208,14 @@ export function createCommandPalette(
     releaseBackground?.();
     releaseBackground = undefined;
     restoreFocus();
-    if (notify) emit('closed', { reason });
+    if (notify) emit('closed', { instanceId, reason });
   }
 
   function select(id: string | undefined, source: 'keyboard' | 'pointer'): void {
     if (!isOpen || disposed || composing) return;
     const command = results.find((item) => item.id === id && !item.disabled);
     if (!command) return;
-    emit('commandSelected', { commandId: command.id, query, source });
+    emit('commandSelected', { instanceId, commandId: command.id, query, source });
     if (configuration.closeOnSelect) close('selection');
   }
 
@@ -233,6 +234,7 @@ export function createCommandPalette(
         isOpen: () => isOpen,
         onConflict: () =>
           emit('error', {
+            instanceId,
             code: 'shortcut-conflict',
             message: 'This shortcut is currently owned by another component.',
           }),
@@ -258,7 +260,7 @@ export function createCommandPalette(
     if (!isOpen || composing || input.value === query) return;
     query = input.value;
     render(false);
-    emit('queryChanged', { query, resultCount: results.length });
+    emit('queryChanged', { instanceId, query, resultCount: results.length });
   }
 
   function keydown(event: KeyboardEvent): void {
@@ -332,7 +334,7 @@ export function createCommandPalette(
   configureShortcut(configuration.shortcut);
 
   return {
-    prepareUpdate(next: JsonObject) {
+    prepareUpdate(next: Configuration) {
       const normalized = normalizeConfiguration(next);
       const previous = configuration;
       const previousActive = activeId;

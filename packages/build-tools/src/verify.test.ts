@@ -4,12 +4,24 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { buildRelease } from './build.js';
 import type { BuiltRelease } from './build.js';
-import { collectEvidence, registerVerifiedRelease, verify } from './verify.js';
+import {
+  collectEvidence,
+  registerVerifiedRelease,
+  verify,
+  evidenceProvenance,
+  evidenceReadiness,
+} from './verify.js';
+import { loadCertification, requiredInventory } from './certification.js';
+import type { Certification } from './certification.js';
+import { selectComponents } from './registry.js';
+import { prepareCleanWorkspace } from './clean-workspaces.js';
 import type { BrowserReport } from './verify.js';
 import type { CompatibilityEvidence } from '@osai/adapter-schema';
 
 const root = process.cwd();
 let built: BuiltRelease;
+let certification: Certification;
+let inventory: string[];
 let pins: { name: string; revision: string; browserVersion: string }[];
 const gates = [
   'browser',
@@ -36,6 +48,9 @@ const resourceNames = [
 ];
 
 beforeAll(async () => {
+  const [component] = await selectComponents(root, {});
+  certification = await loadCertification(component!);
+  inventory = await requiredInventory(root, certification);
   built = await buildRelease(root, {
     outputRoot: await mkdtemp(join(tmpdir(), 'osai-verifier-payload-')),
   });
@@ -55,46 +70,146 @@ function jsonAttachment(name: string, value: unknown) {
 }
 
 function browserReport(release = built): BrowserReport {
-  const tests = release.config.targets.flatMap((target) =>
-    release.policy.browsers.map((browser) => ({
-      projectName: `${target}-${browser}`,
-      status: 'expected',
-      annotations: gates.map((description) => ({ type: 'gate', description })),
-      results: [
-        {
-          status: 'passed',
-          attachments: [
-            jsonAttachment('compatibility-evidence', {
-              target,
-              browser,
-              browserVersion: pins.find((pin) => pin.name === browser)!.browserVersion,
-              artifactChecksum: release.checksums[`${target}/${release.manifest.componentId}.js`],
-              artifacts: Object.fromEntries(
-                ['js', 'css'].map((extension) => {
-                  const file = `${release.manifest.componentId}.${extension}`;
-                  return [file, release.checksums[`${target}/${file}`]];
-                }),
-              ),
-              policyVersion: release.policy.policyVersion,
-              suiteVersion: '1.0.0',
-            }),
-            jsonAttachment('accessibility-measurements', { violations: 0 }),
-            jsonAttachment('leak-measurements', {
-              cycles: 100,
-              snapshot: {
-                instances: 0,
-                subscriptions: 0,
-                pendingEvents: 0,
-                resources: Object.fromEntries(resourceNames.map((name) => [name, 0])),
-              },
-            }),
-          ],
-        },
-      ],
-    })),
-  );
+  const specs = inventory.map((id) => ({
+    title: id.startsWith('palette/') ? id.slice(8) : id,
+    tests: release.config.targets.flatMap((target) =>
+      release.policy.browsers.map((browser) => ({
+        projectName: `${target}-${browser}`,
+        status: 'expected',
+        annotations: gates.map((description) => ({ type: 'gate', description })),
+        results: [
+          {
+            status: 'passed',
+            attachments: [
+              jsonAttachment('compatibility-evidence', {
+                target,
+                browser,
+                browserVersion: pins.find((pin) => pin.name === browser)!.browserVersion,
+                artifactChecksum: release.checksums[`${target}/${release.manifest.componentId}.js`],
+                artifacts: Object.fromEntries(
+                  ['js', 'css'].map((extension) => {
+                    const file = `${release.manifest.componentId}.${extension}`;
+                    return [file, release.checksums[`${target}/${file}`]];
+                  }),
+                ),
+                policyVersion: release.policy.policyVersion,
+                suiteVersion: '2.0.0',
+              }),
+              jsonAttachment('accessibility-measurements', { violations: 0 }),
+              jsonAttachment('leak-measurements', {
+                cycles: 100,
+                snapshot: {
+                  instances: 0,
+                  subscriptions: 0,
+                  pendingEvents: 0,
+                  resources: Object.fromEntries(resourceNames.map((name) => [name, 0])),
+                },
+              }),
+              jsonAttachment('scenario-evidence', {
+                schemaVersion: '2.0',
+                scenarioId: id,
+                componentId: release.manifest.componentId,
+                version: release.manifest.version,
+                target,
+                browser,
+                browserVersion: pins.find((pin) => pin.name === browser)!.browserVersion,
+                suiteVersion: '2.0.0',
+                ...evidenceProvenance(certification, release.policy),
+                artifactChecksums: release.checksums,
+                passed: true,
+                afterCleanup: {
+                  before: { effects: 0 },
+                  after: {
+                    ...Object.fromEntries(
+                      [
+                        'listeners',
+                        'timers',
+                        'animationFrames',
+                        'observers',
+                        'workers',
+                        'portals',
+                        'effects',
+                      ].map((name) => [name, 0]),
+                    ),
+                    workerUrls: [],
+                    origins: [],
+                    portalSelectors: [],
+                    apis: [],
+                  },
+                  managed: {
+                    instances: 0,
+                    subscriptions: 0,
+                    pendingEvents: 0,
+                    resources: Object.fromEntries(
+                      [...resourceNames, 'operations'].map((name) => [name, 0]),
+                    ),
+                  },
+                },
+                measurement:
+                  id === 'platform/cleanup'
+                    ? { cycles: 100 }
+                    : id === 'platform/accessibility'
+                      ? {
+                          violations: 0,
+                          componentObservations: {
+                            workerUrls: [],
+                            origins: [],
+                            portalSelectors: [],
+                            apis: [],
+                          },
+                        }
+                      : id === 'platform/negative-listener'
+                        ? { rejected: true }
+                        : id === 'platform/negative-performance'
+                          ? {
+                              rejected: true,
+                              measuredMs: certification.profile.benchmark.input.worstMs + 10,
+                              thresholdMs: certification.profile.benchmark.input.worstMs,
+                            }
+                          : id === 'platform/benchmark'
+                            ? {
+                                settings: certification.profile.benchmark,
+                                environment: {
+                                  userAgent: 'Synthetic regression input',
+                                  platform: 'test',
+                                },
+                                resources: Object.fromEntries(
+                                  [
+                                    'listeners',
+                                    'timers',
+                                    'animationFrames',
+                                    'observers',
+                                    'workers',
+                                    'portals',
+                                  ].map((name) => [name, 0]),
+                                ),
+                                workloads: [1000, 10000].map((records) => ({
+                                  records,
+                                  samples: {
+                                    create: Array(30).fill(1),
+                                    update: Array(30).fill(1),
+                                    input: Array(30).fill(1),
+                                  },
+                                  create: { p95Ms: 1, worstMs: 1 },
+                                  update: { p95Ms: 1, worstMs: 1 },
+                                  input: { p95Ms: 1, worstMs: 1 },
+                                })),
+                              }
+                            : {
+                                assertions: 1,
+                                commands: Object.keys(release.manifest.commands),
+                                events: Object.keys(release.manifest.events),
+                              },
+              }),
+            ],
+          },
+        ],
+      })),
+    ),
+  }));
+  const tests = specs.flatMap((spec) => spec.tests);
   return {
-    suites: [{ title: 'Synthetic parser input', specs: [{ title: 'Measured behavior', tests }] }],
+    suites: [{ title: 'Synthetic parser input', specs }],
     stats: { expected: tests.length, unexpected: 0, skipped: 0, flaky: 0 },
     errors: [],
   };
@@ -231,9 +346,7 @@ describe('browser measurement parser', () => {
     const missing = browserReport();
     missing.suites[0]!.specs![0]!.tests.pop();
     missing.stats.expected--;
-    await expect(collectEvidence(root, built, missing)).rejects.toThrow(
-      'Missing pinned browser coverage',
-    );
+    await expect(collectEvidence(root, built, missing)).rejects.toThrow('scenario inventory');
     const extra = browserReport();
     firstTest(extra).projectName = 'unknown-chromium';
     await expect(collectEvidence(root, built, extra)).rejects.toThrow('project matrix');
@@ -242,12 +355,12 @@ describe('browser measurement parser', () => {
     await expect(collectEvidence(root, built, total)).rejects.toThrow('count or project');
   });
 
-  it('requires every browser gate and rejects duplicate or missing evidence', async () => {
+  it('uses exact scenario inventory instead of annotations and rejects duplicate or missing evidence', async () => {
     const missing = browserReport();
     firstTest(missing).annotations = firstTest(missing).annotations!.filter(
       (value) => value.description !== 'keyboard',
     );
-    await expect(collectEvidence(root, built, missing)).rejects.toThrow('No keyboard coverage');
+    await expect(collectEvidence(root, built, missing)).resolves.toHaveLength(2);
     const duplicate = browserReport();
     firstTest(duplicate).results[0]!.attachments!.push(
       firstTest(duplicate).results[0]!.attachments![0]!,
@@ -256,6 +369,75 @@ describe('browser measurement parser', () => {
     const proof = browserReport();
     firstTest(proof).results[0]!.attachments = [];
     await expect(collectEvidence(root, built, proof)).rejects.toThrow('does not match');
+  });
+
+  it.each([
+    'profileHash',
+    'contractHash',
+    'descriptorHash',
+    'policyHash',
+    'suiteHash',
+    'componentId',
+    'scenarioId',
+  ])('rejects stale or substituted scenario provenance %s', async (field) => {
+    const report = browserReport();
+    changeAttachment(report, 'scenario-evidence', (proof) => {
+      proof[field] = 'unmatched';
+    });
+    await expect(collectEvidence(root, built, report)).rejects.toThrow('provenance');
+  });
+  it('rejects omitted and duplicated passing scenarios even with forged gate annotations', async () => {
+    const report = browserReport();
+    report.suites[0]!.specs!.splice(1, 1);
+    report.stats.expected -= 6;
+    await expect(collectEvidence(root, built, report)).rejects.toThrow('scenario inventory');
+    const duplicate = browserReport();
+    duplicate.suites[0]!.specs!.push(structuredClone(duplicate.suites[0]!.specs![0]!));
+    duplicate.stats.expected += 6;
+    await expect(collectEvidence(root, built, duplicate)).rejects.toThrow('scenario inventory');
+  });
+  it('rejects independent leaks when SDK counters are zero', async () => {
+    const report = browserReport();
+    changeAttachment(report, 'scenario-evidence', (proof) => {
+      (proof.afterCleanup as { after: { listeners: number } }).after.listeners = 1;
+    });
+    await expect(collectEvidence(root, built, report)).rejects.toThrow('cleanup');
+  });
+  it('rejects deliberately slow measurements without changing the profile', async () => {
+    const report = browserReport();
+    const spec = report.suites[0]!.specs!.find((spec) => spec.title === 'platform/benchmark')!;
+    const attachment = spec.tests[0]!.results[0]!.attachments!.find(
+      (item) => item.name === 'scenario-evidence',
+    )!;
+    const proof = JSON.parse(Buffer.from(attachment.body!, 'base64').toString('utf8'));
+    proof.measurement.workloads[0].samples.create = Array(30).fill(99999);
+    proof.measurement.workloads[0].create = { p95Ms: 99999, worstMs: 99999 };
+    attachment.body = Buffer.from(JSON.stringify(proof)).toString('base64');
+    await expect(collectEvidence(root, built, report)).rejects.toThrow('Performance profile');
+  });
+
+  it('separates scanner allocations while still requiring declared component observations', async () => {
+    const report = browserReport();
+    const spec = report.suites[0]!.specs!.find((spec) => spec.title === 'platform/accessibility')!;
+    const attachment = spec.tests[0]!.results[0]!.attachments!.find(
+      (item) => item.name === 'scenario-evidence',
+    )!;
+    const proof = JSON.parse(Buffer.from(attachment.body!, 'base64').toString('utf8'));
+    const save = () => {
+      attachment.body = Buffer.from(JSON.stringify(proof)).toString('base64');
+    };
+    proof.afterCleanup.after.observers = 1;
+    proof.afterCleanup.after.apis = ['MutationObserver'];
+    save();
+    await expect(collectEvidence(root, built, report)).resolves.toHaveLength(2);
+    proof.measurement.componentObservations.apis = ['UndeclaredBrowserApi'];
+    save();
+    await expect(collectEvidence(root, built, report)).rejects.toThrow('not declared');
+    delete proof.measurement.componentObservations;
+    save();
+    await expect(collectEvidence(root, built, report)).rejects.toThrow(
+      'Missing observed capability',
+    );
   });
 
   it('does not infer zero leaks or accessibility violations from an incomplete measurement', async () => {
@@ -303,21 +485,54 @@ describe('browser measurement parser', () => {
 });
 
 describe('verification before immutable registration', () => {
+  it('never grants readiness from missing, stale, target-mismatched or invented evidence', async () => {
+    const setup = await archivedFixture();
+    const record = setup.records.find((record) => record.target === 'odc')!;
+    expect(await evidenceReadiness(root, setup.release, record, 'odc')).toBe('browser-verified');
+    expect(await evidenceReadiness(root, setup.release, record, 'o11-reactive')).toBe('stale');
+    for (const mutate of [
+      (value: CompatibilityEvidence) => {
+        value.componentId = 'sibling';
+      },
+      (value: CompatibilityEvidence) => {
+        value.provenance!.descriptorHash = '0'.repeat(64);
+      },
+      (value: CompatibilityEvidence) => {
+        value.scenarios!.pop();
+      },
+      (value: CompatibilityEvidence) => {
+        value.gates[0]!.passed = false;
+      },
+      (value: CompatibilityEvidence) => {
+        value.status = 'OutSystems-verified';
+      },
+    ]) {
+      const copy = structuredClone(record);
+      mutate(copy);
+      expect(await evidenceReadiness(root, setup.release, copy, 'odc')).toBe('stale');
+    }
+    await writeFile(join(setup.reports, 'browser.json'), '{}');
+    expect(await evidenceReadiness(root, setup.release, record, 'odc')).toBe('stale');
+  });
   it.each([false, true])(
     'records machine-readable failures from actual verify/release execution (register=%s)',
     async (register) => {
       const directory = await mkdtemp(join(tmpdir(), 'osai-verification-failure-'));
+      await prepareCleanWorkspace(root, directory);
       await writeFile(
         join(directory, 'build.config.json'),
         JSON.stringify({
           ...built.config,
-          manifest: join(root, built.config.manifest),
+          manifest: built.config.manifest,
           policy: join(root, built.config.policy),
         }),
       );
       await expect(verify(directory, register, '99.0.0')).rejects.toThrow('Requested version');
       const failure = JSON.parse(
-        await readFile(join(directory, 'test-results/verification-failure.json'), 'utf8'),
+        await readFile(
+          join(directory, 'test-results/command-palette/verification-failure.json'),
+          'utf8',
+        ),
       );
       expect(failure).toMatchObject({
         schemaVersion: '1.0',

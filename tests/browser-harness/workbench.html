@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OSAI component workbench</title>
+    <link rel="stylesheet" href="/workbench.css" />
+    <script defer src="/workbench.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="#workspace">OSAI <span>Component workbench</span></a
+      ><span id="readiness" role="status">Select a package</span>
+    </header>
+    <nav aria-label="Main">
+      <a href="#library">Component library</a><a href="#workspace">Workspace</a
+      ><a href="#activity">Activity</a>
+    </nav>
+    <main>
+      <section id="library" hidden>
+        <h1>Component library</h1>
+        <p>Production components and explicitly included test fixtures.</p>
+        <div id="catalog"></div>
+      </section>
+      <section id="workspace">
+        <h1>Preview workspace</h1>
+        <div class="selection">
+          <label>Component<select id="component"></select></label
+          ><label>Version<input id="version" aria-label="Version" /></label
+          ><label
+            >Target<select id="target">
+              <option value="odc">ODC</option>
+              <option value="o11-reactive">O11 Reactive</option>
+            </select></label
+          ><button id="load" type="button">Load package</button>
+        </div>
+        <p id="message" role="status">Preparing preview.</p>
+        <div class="workspace-grid">
+          <div class="controls">
+            <h2>Configuration</h2>
+            <div id="fields"></div>
+            <label for="configuration">Complete configuration JSON</label
+            ><textarea id="configuration" spellcheck="false" rows="9"></textarea>
+            <div class="actions">
+              <button id="create" type="button">Create</button
+              ><button id="update" type="button">Apply update</button
+              ><button id="dispose" type="button">Dispose</button>
+            </div>
+            <h2>Commands</h2>
+            <label>Command<select id="command"></select></label>
+            <div id="argument-fields"></div>
+            <label for="arguments">Arguments JSON</label
+            ><textarea id="arguments" rows="4" spellcheck="false">{}</textarea
+            ><button id="invoke" type="button">Invoke</button>
+          </div>
+          <div>
+            <h2>Isolated preview</h2>
+            <div id="frame-container"></div>
+          </div>
+        </div>
+      </section>
+      <section id="activity" hidden>
+        <h1>Activity</h1>
+        <p>Current session only. Payload values are redacted.</p>
+        <div class="actions">
+          <button id="reset" type="button">Reset session</button
+          ><button id="export" type="button">Export diagnostics</button>
+        </div>
+        <p id="truncation" role="status"></p>
+        <ol id="activity-list"></ol>
+      </section>
+    </main>
+    <footer>Local browser preview. Tenant execution is a separate verification step.</footer>
+  </body>
+</html>

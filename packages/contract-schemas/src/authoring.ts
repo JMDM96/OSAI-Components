@@ -1,4 +1,5 @@
 import { readFile, realpath } from 'node:fs/promises';
+export { generateAuthoringBindings, BINDING_GENERATOR_VERSION } from './bindings.js';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';

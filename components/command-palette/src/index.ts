@@ -7,6 +7,7 @@ import resultSchema from '../schemas/command-result.schema.json';
 import eventSchemas from '../schemas/events.schema.json';
 import { validateConfiguration } from './configuration.js';
 import { createCommandPalette } from './palette.js';
+import type { Bindings } from './generated.js';
 
 const commandContract = {
   arguments: argumentsSchema,
@@ -46,7 +47,7 @@ export const commandPaletteContract: ImplementationContract = {
   events: eventSchemas.definitions,
 };
 
-export const commandPaletteDefinition = defineComponent({
+export const commandPaletteDefinition = defineComponent<Bindings>({
   manifest: componentManifest,
   contract: commandPaletteContract,
   validateConfig: validateConfiguration,

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "componentId": "resources",
+  "version": "1.0.0",
+  "contractVersion": "1.0",
+  "targets": ["odc", "o11-reactive"],
+  "entry": "src/index.ts",
+  "styles": ["src/styles.css"],
+  "properties": {
+    "label": {
+      "schema": { "type": "string", "maxLength": 100 },
+      "required": false,
+      "default": "Ready",
+      "access": "readwrite",
+      "updateMode": "live"
+    },
+    "records": {
+      "schema": {
+        "type": "array",
+        "items": { "type": "string", "maxLength": 100 },
+        "maxItems": 10000
+      },
+      "required": false,
+      "default": [],
+      "access": "readwrite",
+      "updateMode": "live"
+    },
+    "fail": {
+      "schema": { "type": "boolean" },
+      "required": false,
+      "default": false,
+      "access": "readwrite",
+      "updateMode": "live"
+    }
+  },
+  "commands": {
+    "start": {
+      "arguments": {
+        "type": "object",
+        "properties": { "value": { "type": "string" } },
+        "required": ["value"],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": { "accepted": { "type": "boolean" }, "generation": { "type": "integer" } },
+        "required": ["accepted", "generation"],
+        "additionalProperties": false
+      },
+      "execution": "sync"
+    },
+    "read": {
+      "arguments": { "type": "object", "additionalProperties": false },
+      "result": { "type": "string" },
+      "execution": "sync"
+    }
+  },
+  "events": {
+    "completed": {
+      "schema": {
+        "type": "object",
+        "properties": { "value": { "type": "string" } },
+        "required": ["value"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "themeTokens": {},
+  "capabilities": {
+    "browserApis": ["Worker", "MutationObserver"],
+    "networkOrigins": [],
+    "workers": ["workers/local.js"],
+    "portals": [
+      {
+        "name": "status",
+        "selector": "[data-osai-resource-portal]",
+        "owner": "instance",
+        "accessibility": "Polite status output",
+        "cleanup": "Managed portal scope removes the status"
+      }
+    ],
+    "globalStyles": [],
+    "keyframes": [],
+    "fonts": ["OSAI Fixture"]
+  },
+  "dependencies": [],
+  "assets": [
+    { "path": "workers/local.js", "type": "worker" },
+    { "path": "assets/fonts/fixture.woff", "type": "font" },
+    { "path": "assets/images/pixel.png", "type": "image" }
+  ]
+}

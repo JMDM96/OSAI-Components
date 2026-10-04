@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "componentId": "minimal",
+  "profile": {
+    "id": "base-ui",
+    "version": "1.0.0"
+  },
+  "scenarioModule": "certification/scenarios.ts",
+  "validConfiguration": {
+    "label": "Hello"
+  },
+  "invalidConfigurations": [
+    {
+      "label": 42
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "command-read",
+      "kind": "command",
+      "member": "read"
+    },
+    {
+      "id": "event-read",
+      "kind": "event",
+      "member": "read"
+    },
+    {
+      "id": "accessible",
+      "kind": "accessibility",
+      "member": "root"
+    },
+    {
+      "id": "default",
+      "kind": "visual",
+      "member": "default"
+    }
+  ]
+}

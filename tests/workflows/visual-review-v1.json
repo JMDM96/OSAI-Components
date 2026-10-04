@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "1.0",
+  "reviewDate": "2026-10-04",
+  "reviewer": "Codex visual inspection",
+  "scope": "New shared component and workbench baselines only; existing palette state baselines preserved",
+  "findings": {
+    "minimal": "Plain Hello text at the default document inset; deliberately minimal fixture.",
+    "resources": "Named Start local work button, Ready output and original rectangular font glyph; fixture font/image loading is also asserted in browsers.",
+    "palette": "Open single-command palette with visible focus ring, heading, Escape button and footer; no clipping.",
+    "workbench": "Separate Library, Workspace and Activity views; visible active navigation, aligned controls, distinct fixture labels and redacted log. Preview is empty until Create. Readiness is masked because its meaning is tested separately."
+  },
+  "targetReview": "ODC reviewed in Chromium, Firefox and WebKit. Byte-identical O11 images share that review; the differing O11 Firefox resource fixture was also inspected.",
+  "files": [
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/command-palette-default.png",
+      "sha256": "becb3f82ac4852744b19b452473189964e5345a2a01b064763c54f0723ef6253"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/minimal-default.png",
+      "sha256": "65993994e254cc71ce09ef8f21049f062a77191002b62dd9a9e8e9c2673daedd"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/resources-default.png",
+      "sha256": "c40e7d8354dcf83c50d93221a77b3af16ea5d5d97974b42456c4d67ef91b8690"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/workbench-activity.png",
+      "sha256": "615c0e662c2b9f76d5386f0dd8adf5d4f682a68d4c932be219a9d56514379a67"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/workbench-library.png",
+      "sha256": "084e25a3047fd7c8a0b87a62dce465a07aac3eed12763b5dee361e64d9e16d38"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/workbench-workspace.png",
+      "sha256": "02c83f7ccbb0f9ca6fc0be0a3c9a67e61fd6668449936ee20e9cb43e6b471267"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/command-palette-default.png",
+      "sha256": "eac8a5f1c5ecf06c8d1ed0ba0f408fbc4dbef76a930f1b6c5c9b033f3c7fee43"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/minimal-default.png",
+      "sha256": "4e07e6d46ac4d5ff25a62587b763fa6c1a5aae98c6a81b5d814fe8d57fc47cdd"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/resources-default.png",
+      "sha256": "0aec42d93ba9bbc0bf05816c9cb6ed8289c5630728cdc83c70ff6d108b2ea43c"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/workbench-activity.png",
+      "sha256": "df1a190a6e708e9f705db467f1a7a240ba04e0d6ca74d0a1d6a4390efce8fa67"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/workbench-library.png",
+      "sha256": "a3d86b5834592759ade576cf42c850ab460d4ea4c985059ff36945b0adc64b63"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/workbench-workspace.png",
+      "sha256": "747706a8997a3486dac0b1a80856f2a23b3f1281c9590dc5ad3682900fde3169"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/command-palette-default.png",
+      "sha256": "0376356af5354b98cb50ca6097c8c6011157cac458177a27ba5510eb2beab2ff"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/minimal-default.png",
+      "sha256": "42b01f9962da891a1aee12aff80c1cc3b0d3cf69ec29169a20a5901459bfb878"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/resources-default.png",
+      "sha256": "7cb47aae6ce27a471a478b2a451915fbba95a7808bf6933ec192bdb3c5d24165"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/workbench-activity.png",
+      "sha256": "55a49980e345781812a348e8061ff4a4b7f4fae68e99e6901d2f329f8b762de6"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/workbench-library.png",
+      "sha256": "51cfca80329737daa4e7bed3db3bcda0ffcbde6532633868e6dc402b70e5d46f"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/workbench-workspace.png",
+      "sha256": "60c77bc37d05663223cf48370a5372503a468149e9b31769a972ca56489017f0"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/command-palette-default.png",
+      "sha256": "becb3f82ac4852744b19b452473189964e5345a2a01b064763c54f0723ef6253"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/minimal-default.png",
+      "sha256": "65993994e254cc71ce09ef8f21049f062a77191002b62dd9a9e8e9c2673daedd"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/resources-default.png",
+      "sha256": "c40e7d8354dcf83c50d93221a77b3af16ea5d5d97974b42456c4d67ef91b8690"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/workbench-activity.png",
+      "sha256": "615c0e662c2b9f76d5386f0dd8adf5d4f682a68d4c932be219a9d56514379a67"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/workbench-library.png",
+      "sha256": "084e25a3047fd7c8a0b87a62dce465a07aac3eed12763b5dee361e64d9e16d38"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/workbench-workspace.png",
+      "sha256": "02c83f7ccbb0f9ca6fc0be0a3c9a67e61fd6668449936ee20e9cb43e6b471267"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/command-palette-default.png",
+      "sha256": "eac8a5f1c5ecf06c8d1ed0ba0f408fbc4dbef76a930f1b6c5c9b033f3c7fee43"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/minimal-default.png",
+      "sha256": "4e07e6d46ac4d5ff25a62587b763fa6c1a5aae98c6a81b5d814fe8d57fc47cdd"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/resources-default.png",
+      "sha256": "2252ccf9380e03efbd50629c6ec6974ea7c784c35593d9d3c4b6370b67f92432"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/workbench-activity.png",
+      "sha256": "df1a190a6e708e9f705db467f1a7a240ba04e0d6ca74d0a1d6a4390efce8fa67"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/workbench-library.png",
+      "sha256": "a3d86b5834592759ade576cf42c850ab460d4ea4c985059ff36945b0adc64b63"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/workbench-workspace.png",
+      "sha256": "747706a8997a3486dac0b1a80856f2a23b3f1281c9590dc5ad3682900fde3169"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/command-palette-default.png",
+      "sha256": "0376356af5354b98cb50ca6097c8c6011157cac458177a27ba5510eb2beab2ff"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/minimal-default.png",
+      "sha256": "42b01f9962da891a1aee12aff80c1cc3b0d3cf69ec29169a20a5901459bfb878"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/resources-default.png",
+      "sha256": "7cb47aae6ce27a471a478b2a451915fbba95a7808bf6933ec192bdb3c5d24165"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/workbench-activity.png",
+      "sha256": "55a49980e345781812a348e8061ff4a4b7f4fae68e99e6901d2f329f8b762de6"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/workbench-library.png",
+      "sha256": "51cfca80329737daa4e7bed3db3bcda0ffcbde6532633868e6dc402b70e5d46f"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/workbench-workspace.png",
+      "sha256": "60c77bc37d05663223cf48370a5372503a468149e9b31769a972ca56489017f0"
+    }
+  ]
+}

@@ -11,13 +11,18 @@
   "workspaces": [
     "packages/*",
     "packages/targets/*",
-    "components/*"
+    "components/*",
+    "tests/fixtures/*"
   ],
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . && stylelint \"components/**/*.css\" \"tests/browser-harness/*.css\"",
-    "typecheck": "tsc -b && tsc -p tsconfig.tests.json",
+    "lint": "eslint . && stylelint \"components/**/*.css\" \"tests/browser-harness/*.css\" \"tests/fixtures/*/src/*.css\"",
+    "bindings": "tsx packages/build-tools/src/bindings-cli.ts --all",
+    "scaffold": "tsx packages/build-tools/src/cli.ts scaffold",
+    "native-plan": "tsx packages/build-tools/src/cli.ts native-plan",
+    "bindings:check": "tsx packages/build-tools/src/bindings-cli.ts --all --check",
+    "typecheck": "npm run bindings:check && tsc -b && tsc -p tsconfig.tests.json",
     "test:unit": "vitest run",
     "browsers:install": "tsx packages/build-tools/src/browser-cli.ts install chromium firefox webkit",
     "test:browser": "tsx packages/build-tools/src/browser-cli.ts test",
@@ -28,7 +33,7 @@
     "verify": "tsx packages/build-tools/src/cli.ts verify",
     "release": "tsx packages/build-tools/src/cli.ts release",
     "reproduce": "tsx packages/build-tools/src/cli.ts reproduce",
-    "preview": "tsx tests/browser-harness/server.ts"
+    "preview": "tsx packages/build-tools/src/cli.ts preview"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

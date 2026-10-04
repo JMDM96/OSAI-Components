@@ -2,6 +2,8 @@ import type {
   ComponentContext,
   ComponentController,
   ComponentDefinition,
+  ComponentBindings,
+  UntypedBindings,
 } from '@osai/component-sdk';
 import {
   canonicalJson,
@@ -11,8 +13,19 @@ import {
   validateImplementationParity,
   validateJsonSchema,
   validateManifest,
+  capabilityProfile,
+  validateCapabilityProfile,
 } from '@osai/contract-schemas';
-import type { Diagnostic, JsonObject, JsonValue } from '@osai/contract-schemas';
+import type {
+  Diagnostic,
+  JsonObject,
+  JsonValue,
+  CapabilityProfile,
+  RuntimeLimits,
+  ReleaseResources,
+} from '@osai/contract-schemas';
+import { checkJsonText, checkJsonValue, JsonLimitError } from './limits.js';
+import { AssetRegistry, ResourceMappingError } from './asset-registry.js';
 import {
   BackgroundLocks,
   emptyCounts,
@@ -24,7 +37,7 @@ import type { ResourceCounts } from './resources.js';
 
 export { normalizeShortcut };
 export type { ResourceCounts };
-export const BRIDGE_VERSION = '1.0.0';
+export const BRIDGE_VERSION = '2.0.0';
 export const CONTRACT_VERSION = '1.0';
 const bridgeIdentity = Symbol.for('@osai/runtime-bridge');
 
@@ -38,6 +51,7 @@ export interface Envelope<T = JsonValue> {
 }
 
 export interface BridgeApi {
+  registerResources(componentId: string, registrationJson: string): string;
   create(
     componentId: string,
     instanceId: string,
@@ -63,15 +77,20 @@ export interface RuntimeSnapshot {
   pendingEvents: number;
   resources: ResourceCounts;
   diagnostics: Diagnostic[];
+  faultedInstances: { instanceId: string; code: 'instance-faulted' }[];
 }
 
 export interface RuntimeBridge {
   readonly api: BridgeApi;
-  registerComponent(definition: ComponentDefinition): string;
+  registerComponent<B extends ComponentBindings = UntypedBindings>(
+    definition: ComponentDefinition<B>,
+    resources?: ReleaseResources,
+  ): string;
   inspect(): RuntimeSnapshot;
 }
 
 export interface BridgeOptions {
+  profile?: CapabilityProfile;
   document?: Document;
   globalObject?: object;
   namespace?: string;
@@ -97,9 +116,13 @@ interface Instance {
   controller?: ComponentController;
   subscriptions: Map<string, Subscription>;
   queue: Delivery[];
+  transitionEvents?: Delivery[];
   cancelDelivery?: () => void;
   disposed: boolean;
   committed: boolean;
+  transitioning?: boolean;
+  faulted?: boolean;
+  cleaned?: boolean;
 }
 
 class BoundaryFailure extends Error {
@@ -118,6 +141,11 @@ const messages: Record<string, string> = {
   'cleanup-error': 'A managed cleanup failed.',
   'shortcut-conflict': 'This shortcut is currently owned by another component.',
   'event-contract-error': 'The component emitted an invalid event.',
+  'json-limit-exceeded': 'JSON exceeds its declared profile limit.',
+  'event-queue-full': 'The event queue is full; the newest event was rejected.',
+  'instance-faulted':
+    'The instance could not recover. Inspect it and explicitly dispose before recreation.',
+  'operation-in-progress': 'An operation on this instance is already in progress.',
 };
 
 function envelope(
@@ -142,9 +170,10 @@ function identifier(value: unknown, path: string): asserts value is string {
     throw new BoundaryFailure('invalid-identifier', 'Expected a nonempty string identifier.', path);
 }
 
-function parse(value: unknown, path: string): JsonValue {
+function parse(value: unknown, path: string, limits: RuntimeLimits): JsonValue {
   if (typeof value !== 'string')
     throw new BoundaryFailure('invalid-json', 'Expected a JSON string.', path);
+  checkJsonText(value, limits);
   try {
     return JSON.parse(value) as JsonValue;
   } catch {
@@ -181,11 +210,24 @@ function requireValid(diagnostics: Diagnostic[]): void {
     );
 }
 
+/** Own every JSON tree crossing from component code into retained runtime state. */
+function immutableSnapshot<T>(value: T): T {
+  const snapshot = JSON.parse(canonicalJson(value)) as T;
+  const freeze = (node: unknown): void => {
+    if (node === null || typeof node !== 'object') return;
+    for (const child of Object.values(node)) freeze(child);
+    Object.freeze(node);
+  };
+  freeze(snapshot);
+  return snapshot;
+}
+
 export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
   const document = options.document ?? globalThis.document;
   if (!document?.defaultView) throw new Error('The runtime bridge requires a browser document.');
   const view = document.defaultView;
   const components = new Map<string, ComponentDefinition>();
+  const assets = new AssetRegistry(document);
   const instances = new Map<string, Instance>();
   const containers = new WeakMap<HTMLElement, string>();
   const pendingIds = new Set<string>();
@@ -216,6 +258,15 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
     try {
       return operation();
     } catch (cause) {
+      if (cause instanceof ResourceMappingError) return envelope(false, cause.code, cause.message);
+      if (cause instanceof JsonLimitError)
+        return envelope(
+          false,
+          'json-limit-exceeded',
+          messages['json-limit-exceeded']!,
+          undefined,
+          `/limits/${cause.limit}`,
+        );
       if (cause instanceof BoundaryFailure)
         return envelope(false, cause.code, cause.message, undefined, cause.path);
       report('internal-error', '', cause);
@@ -225,6 +276,8 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
 
   const find = (id: string): Instance => {
     identifier(id, '/instanceId');
+    if (pendingIds.has(id))
+      throw new BoundaryFailure('operation-in-progress', messages['operation-in-progress']!);
     const instance = instances.get(id);
     if (!instance)
       throw new BoundaryFailure(
@@ -232,11 +285,27 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
         'No live instance has this identifier.',
         '/instanceId',
       );
+    if (instance.transitioning)
+      throw new BoundaryFailure('operation-in-progress', messages['operation-in-progress']!);
+    if (instance.faulted)
+      throw new BoundaryFailure('instance-faulted', messages['instance-faulted']!);
     return instance;
   };
 
+  const exclusive = (instance: Instance, operation: () => string): string => {
+    instance.transitioning = true;
+    try {
+      return operation();
+    } finally {
+      instance.transitioning = false;
+    }
+  };
+
   const configuration = (definition: ComponentDefinition, json: string): JsonObject => {
-    const normalized = normalizeConfig(definition.manifest, parse(json, '/configuration'));
+    const normalized = normalizeConfig(
+      definition.manifest,
+      parse(json, '/configuration', definition.profile!.limits),
+    );
     requireValid(normalized.diagnostics);
     if (!normalized.ok || !normalized.value)
       throw new BoundaryFailure(
@@ -244,8 +313,10 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
         'The configuration is invalid.',
         '/configuration',
       );
-    requireValid(definition.validateConfig?.(normalized.value) ?? []);
-    return normalized.value;
+    const config = immutableSnapshot(normalized.value);
+    checkJsonValue(config, definition.profile!.limits);
+    requireValid(definition.validateConfig?.(config) ?? []);
+    return config;
   };
 
   const stopEvents = (instance: Instance): void => {
@@ -255,7 +326,11 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
     instance.subscriptions.clear();
   };
 
-  const cleanup = (instance: Instance): void => {
+  const cleanup = (instance: Instance, retainFault = false): void => {
+    if (instance.cleaned) {
+      if (!retainFault) instances.delete(instance.id);
+      return;
+    }
     instance.disposed = true;
     stopEvents(instance);
     try {
@@ -267,13 +342,16 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
     for (const key of Object.keys(failedReleases) as (keyof ResourceCounts)[])
       failedReleases[key] += instance.resources.counts[key];
     containers.delete(instance.host);
-    instances.delete(instance.id);
+    instance.cleaned = true;
+    delete instance.controller;
+    if (!retainFault) instances.delete(instance.id);
   };
 
   const schedule = (instance: Instance): void => {
     if (
       instance.cancelDelivery ||
       !instance.committed ||
+      instance.transitionEvents ||
       instance.disposed ||
       instance.queue.length === 0
     )
@@ -281,7 +359,10 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
     instance.cancelDelivery = instance.resources.timeout(() => {
       delete instance.cancelDelivery;
       // Work emitted by callbacks belongs to the next turn, avoiding recursive delivery.
-      const deliveries = instance.queue.splice(0);
+      const deliveries = instance.queue.splice(
+        0,
+        instance.definition.profile!.limits.deliveryBatch,
+      );
       for (const delivery of deliveries) {
         if (instance.disposed) break;
         for (const token of delivery.subscriptions) {
@@ -302,6 +383,15 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
   const emit = (instance: Instance, name: string, payload: JsonValue): void => {
     if (instance.disposed) return;
     const path = `/events/${pointer(name)}`;
+    try {
+      checkJsonValue(payload, instance.definition.profile!.limits);
+    } catch (cause) {
+      report(
+        cause instanceof JsonLimitError ? 'json-limit-exceeded' : 'event-contract-error',
+        cause instanceof JsonLimitError ? `/limits/${cause.limit}` : path,
+      );
+      return;
+    }
     const contract = Object.prototype.hasOwnProperty.call(instance.definition.manifest.events, name)
       ? instance.definition.manifest.events[name]
       : undefined;
@@ -317,7 +407,14 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
       .filter(([, subscription]) => subscription.event === name)
       .map(([token]) => token);
     if (subscriptions.length === 0) return;
-    instance.queue.push({
+    if (
+      instance.queue.length + (instance.transitionEvents?.length ?? 0) >=
+      instance.definition.profile!.limits.eventCapacity
+    ) {
+      report('event-queue-full', '/limits/eventCapacity');
+      return;
+    }
+    (instance.transitionEvents ?? instance.queue).push({
       json: envelope(true, 'event', 'Component event.', {
         instanceId: instance.id,
         eventName: name,
@@ -335,8 +432,9 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
     for (const instance of instances.values()) {
       subscriptions += instance.subscriptions.size;
       pendingEvents += instance.queue.length;
-      for (const key of Object.keys(resources) as (keyof ResourceCounts)[])
-        resources[key] += instance.resources.counts[key];
+      if (!instance.cleaned)
+        for (const key of Object.keys(resources) as (keyof ResourceCounts)[])
+          resources[key] += instance.resources.counts[key];
     }
     resources.listeners += shortcuts.listenerCount;
     return {
@@ -346,10 +444,29 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
       pendingEvents,
       resources,
       diagnostics: diagnostics.map((value) => ({ ...value })),
+      faultedInstances: [...instances.values()]
+        .filter((instance) => instance.faulted)
+        .map((instance) => ({ instanceId: instance.id, code: 'instance-faulted' as const })),
     };
   };
 
   const api: BridgeApi = Object.freeze({
+    registerResources: (componentId: string, registrationJson: string): string =>
+      boundary(() => {
+        identifier(componentId, '/componentId');
+        const definition = components.get(componentId);
+        if (!definition)
+          throw new BoundaryFailure('unknown-component', 'The component is not registered.');
+        assets.register(
+          componentId,
+          parse(registrationJson, '/resources', definition.profile!.limits),
+          pendingIds.size > 0 ||
+            [...instances.values()].some(
+              (instance) => instance.definition.manifest.componentId === componentId,
+            ),
+        );
+        return envelope(true, 'resources-registered', 'The release resources are registered.');
+      }),
     create: (
       componentId: string,
       instanceId: string,
@@ -386,183 +503,232 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
             'The host container is already owned.',
             '/hostElementId',
           );
-        const config = configuration(definition, configJson);
-        const root = document.createElement('div');
-        root.dataset.osaiComponent = componentId;
-        root.dataset.osaiInstance = instanceId;
-        const resources = new ManagedResources(
-          view,
-          locks,
-          (code, cause) => report(code, '', cause),
-          (element) =>
-            definition.manifest.capabilities.portals.some((portal) =>
-              element.matches(portal.selector),
-            ),
-        );
-        const instance: Instance = {
-          id: instanceId,
-          definition,
-          config,
-          host,
-          root,
-          resources,
-          subscriptions: new Map(),
-          queue: [],
-          disposed: false,
-          committed: false,
-        };
         pendingIds.add(instanceId);
         containers.set(host, instanceId);
-        host.appendChild(root);
-        resources.track('ownedRoots', () => root.remove());
-        const context: ComponentContext = {
-          instanceId,
-          host,
-          root,
-          resources,
-          emit: (name, payload) => emit(instance, name, payload),
-          diagnostic: (code, _message, path) => report(code, path),
-          registerShortcut: (shortcut, handler, shortcutOptions) => {
-            if (instance.disposed) return () => {};
-            const cancel = shortcuts.register(
-              root,
-              shortcut,
-              handler,
-              () => {
-                report('shortcut-conflict', '/properties/shortcut');
-                shortcutOptions?.onConflict?.();
-              },
-              shortcutOptions,
-            );
-            return resources.track('shortcutClaims', cancel);
-          },
-        };
         try {
-          const controller = definition.create(context, config);
-          sync(controller);
-          if (
-            !controller ||
-            typeof controller.prepareUpdate !== 'function' ||
-            typeof controller.dispose !== 'function'
-          )
-            throw new BoundaryFailure(
-              'implementation-contract-error',
-              'The component did not provide a complete controller.',
-            );
-          instance.controller = controller;
-          const commands = controller.commands;
-          if (!commands || typeof commands !== 'object')
-            throw new BoundaryFailure(
-              'implementation-contract-error',
-              'The component must expose its actual command handlers.',
-              '/commands',
-            );
-          for (const name of new Set([
-            ...Object.keys(definition.manifest.commands),
-            ...Object.keys(commands),
-          ])) {
+          const assetUrls = assets.snapshot(componentId);
+          const config = configuration(definition, configJson);
+          const root = document.createElement('div');
+          root.dataset.osaiComponent = componentId;
+          root.dataset.osaiInstance = instanceId;
+          const resources = new ManagedResources(
+            view,
+            locks,
+            (code, cause) => report(code, '', cause),
+            (element) =>
+              definition.manifest.capabilities.portals.some((portal) =>
+                element.matches(portal.selector),
+              ),
+            undefined,
+            definition.profile!.capabilities.includes('imperative-provider'),
+            definition.profile!.capabilities.includes('managed-async'),
+          );
+          const instance: Instance = {
+            id: instanceId,
+            definition,
+            config,
+            host,
+            root,
+            resources,
+            subscriptions: new Map(),
+            queue: [],
+            disposed: false,
+            committed: false,
+          };
+          host.appendChild(root);
+          resources.track('ownedRoots', () => root.remove());
+          const context: ComponentContext = {
+            instanceId,
+            host,
+            root,
+            resources,
+            emit: (name, payload) => emit(instance, name, payload),
+            resolveAsset: (id) => {
+              if (instance.disposed || !Object.prototype.hasOwnProperty.call(assetUrls, id))
+                throw new ResourceMappingError('unknown-resource');
+              return assetUrls[id]!;
+            },
+            diagnostic: (code, _message, path) => report(code, path),
+            registerShortcut: (shortcut, handler, shortcutOptions) => {
+              if (instance.disposed) return () => {};
+              const cancel = shortcuts.register(
+                root,
+                shortcut,
+                handler,
+                () => {
+                  report('shortcut-conflict', '/properties/shortcut');
+                  shortcutOptions?.onConflict?.();
+                },
+                shortcutOptions,
+              );
+              return resources.track('shortcutClaims', cancel);
+            },
+          };
+          try {
+            const controller = definition.create(context, immutableSnapshot(config));
+            sync(controller);
             if (
-              !Object.prototype.hasOwnProperty.call(definition.manifest.commands, name) ||
-              !Object.prototype.hasOwnProperty.call(commands, name) ||
-              typeof commands[name] !== 'function'
+              !controller ||
+              typeof controller.prepareUpdate !== 'function' ||
+              typeof controller.dispose !== 'function'
             )
               throw new BoundaryFailure(
                 'implementation-contract-error',
-                'The actual command handlers must match the manifest.',
-                `/commands/${pointer(name)}`,
+                'The component did not provide a complete controller.',
               );
+            instance.controller = controller;
+            const commands = controller.commands;
+            if (!commands || typeof commands !== 'object')
+              throw new BoundaryFailure(
+                'implementation-contract-error',
+                'The component must expose its actual command handlers.',
+                '/commands',
+              );
+            for (const name of new Set([
+              ...Object.keys(definition.manifest.commands),
+              ...Object.keys(commands),
+            ])) {
+              if (
+                !Object.prototype.hasOwnProperty.call(definition.manifest.commands, name) ||
+                !Object.prototype.hasOwnProperty.call(commands, name) ||
+                typeof commands[name] !== 'function'
+              )
+                throw new BoundaryFailure(
+                  'implementation-contract-error',
+                  'The actual command handlers must match the manifest.',
+                  `/commands/${pointer(name)}`,
+                );
+            }
+            instance.controller = Object.freeze({
+              prepareUpdate: controller.prepareUpdate.bind(controller),
+              dispose: controller.dispose.bind(controller),
+              commands: Object.freeze(
+                Object.fromEntries(
+                  Object.entries(commands).map(([name, handler]) => [name, handler.bind(commands)]),
+                ),
+              ),
+            });
+            instance.committed = true;
+            instances.set(instanceId, instance);
+            schedule(instance);
+            return envelope(true, 'created', 'The component instance was created.', { instanceId });
+          } catch (cause) {
+            cleanup(instance);
+            throw cause;
           }
-          instance.committed = true;
-          instances.set(instanceId, instance);
-          schedule(instance);
-          return envelope(true, 'created', 'The component instance was created.', { instanceId });
-        } catch (cause) {
-          cleanup(instance);
-          throw cause;
         } finally {
           pendingIds.delete(instanceId);
+          if (!instances.has(instanceId)) containers.delete(host);
         }
       }),
     update: (instanceId: string, configJson: string): string =>
       boundary(() => {
         const instance = find(instanceId);
-        const next = configuration(instance.definition, configJson);
-        for (const [name, property] of Object.entries(instance.definition.manifest.properties)) {
-          if (
-            property.updateMode === 'recreate' &&
-            canonicalJson(instance.config[name] ?? null) !== canonicalJson(next[name] ?? null)
-          )
-            throw new BoundaryFailure(
-              'recreation-required',
-              'A changed property requires explicit disposal and creation.',
-              `/properties/${pointer(name)}`,
-            );
-        }
-        const transaction = instance.controller!.prepareUpdate(next);
-        sync(transaction);
-        if (
-          !transaction ||
-          typeof transaction.commit !== 'function' ||
-          typeof transaction.rollback !== 'function'
-        )
-          throw new BoundaryFailure(
-            'implementation-contract-error',
-            'Updates require a commit and rollback transaction.',
-          );
-        const queueLength = instance.queue.length;
-        try {
-          sync(transaction.commit());
-          instance.config = next;
-        } catch (cause) {
-          // Discard events emitted by a failed commit before rollback restores the view.
-          instance.queue.splice(queueLength);
+        return exclusive(instance, () => {
+          const next = configuration(instance.definition, configJson);
+          for (const [name, property] of Object.entries(instance.definition.manifest.properties)) {
+            if (
+              property.updateMode === 'recreate' &&
+              canonicalJson(instance.config[name] ?? null) !== canonicalJson(next[name] ?? null)
+            )
+              throw new BoundaryFailure(
+                'recreation-required',
+                'A changed property requires explicit disposal and creation.',
+                `/properties/${pointer(name)}`,
+              );
+          }
+          instance.transitionEvents = [];
+          const resourceTransaction = instance.resources.beginTransaction();
           try {
-            sync(transaction.rollback());
-          } catch (rollbackCause) {
-            report('cleanup-error', '', rollbackCause);
+            const transaction = instance.controller!.prepareUpdate(immutableSnapshot(next));
+            sync(transaction);
+            if (
+              !transaction ||
+              typeof transaction.commit !== 'function' ||
+              typeof transaction.rollback !== 'function'
+            )
+              throw new BoundaryFailure(
+                'implementation-contract-error',
+                'Updates require a commit and rollback transaction.',
+              );
+            try {
+              sync(transaction.commit());
+            } catch (cause) {
+              try {
+                sync(transaction.rollback());
+              } catch (rollbackCause) {
+                report('cleanup-error', '', rollbackCause);
+                instance.faulted = true;
+                resourceTransaction.rollback();
+                cleanup(instance, true);
+                throw new BoundaryFailure('instance-faulted', messages['instance-faulted']!);
+              }
+              throw cause;
+            }
+            instance.config = next;
+            resourceTransaction.commit();
+            instance.queue.push(...instance.transitionEvents);
+          } finally {
+            resourceTransaction.rollback();
+            // Preparation, commit and rollback share one provisional event buffer.
+            delete instance.transitionEvents;
+            schedule(instance);
           }
-          instance.queue.splice(queueLength);
-          if (instance.queue.length === 0) {
-            instance.cancelDelivery?.();
-            delete instance.cancelDelivery;
-          }
-          throw cause;
-        }
-        return envelope(true, 'updated', 'The complete configuration was replaced.', {
-          instanceId,
+          return envelope(true, 'updated', 'The complete configuration was replaced.', {
+            instanceId,
+          });
         });
       }),
     invoke: (instanceId: string, commandName: string, argumentsJson: string): string =>
       boundary(() => {
         const instance = find(instanceId);
-        identifier(commandName, '/commandName');
-        const commandPath = `/commands/${pointer(commandName)}`;
-        const command = Object.prototype.hasOwnProperty.call(
-          instance.definition.manifest.commands,
-          commandName,
-        )
-          ? instance.definition.manifest.commands[commandName]
-          : undefined;
-        if (!command)
-          throw new BoundaryFailure('unknown-command', 'The command is not declared.', commandPath);
-        const args = parse(argumentsJson, `${commandPath}/arguments`);
-        requireValid(validateJsonSchema(command.arguments, args, `${commandPath}/arguments`));
-        const result = instance.controller!.commands[commandName]!(args);
-        sync(result);
-        if (!isJsonValue(result))
-          throw new BoundaryFailure(
-            'invalid-command-result',
-            'The command returned a non-JSON result.',
-            `${commandPath}/result`,
+        return exclusive(instance, () => {
+          identifier(commandName, '/commandName');
+          const commandPath = `/commands/${pointer(commandName)}`;
+          const command = Object.prototype.hasOwnProperty.call(
+            instance.definition.manifest.commands,
+            commandName,
+          )
+            ? instance.definition.manifest.commands[commandName]
+            : undefined;
+          if (!command)
+            throw new BoundaryFailure(
+              'unknown-command',
+              'The command is not declared.',
+              commandPath,
+            );
+          const args = parse(
+            argumentsJson,
+            `${commandPath}/arguments`,
+            instance.definition.profile!.limits,
           );
-        const errors = validateJsonSchema(command.result, result, `${commandPath}/result`);
-        if (errors.length)
-          throw new BoundaryFailure(
-            'invalid-command-result',
-            'The command result does not satisfy its contract.',
-            errors[0]!.path,
-          );
-        return envelope(true, 'invoked', 'The command completed.', result);
+          requireValid(validateJsonSchema(command.arguments, args, `${commandPath}/arguments`));
+          const result = instance.controller!.commands[commandName]!(args);
+          sync(result);
+          try {
+            checkJsonValue(result, instance.definition.profile!.limits);
+          } catch (cause) {
+            if (cause instanceof JsonLimitError) throw cause;
+            throw new BoundaryFailure(
+              'invalid-command-result',
+              'The command returned a non-JSON result.',
+            );
+          }
+          if (!isJsonValue(result))
+            throw new BoundaryFailure(
+              'invalid-command-result',
+              'The command returned a non-JSON result.',
+              `${commandPath}/result`,
+            );
+          const errors = validateJsonSchema(command.result, result, `${commandPath}/result`);
+          if (errors.length)
+            throw new BoundaryFailure(
+              'invalid-command-result',
+              'The command result does not satisfy its contract.',
+              errors[0]!.path,
+            );
+          return envelope(true, 'invoked', 'The command completed.', result);
+        });
       }),
     registerCallback: (
       instanceId: string,
@@ -601,7 +767,13 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
       boundary(() => {
         identifier(instanceId, '/instanceId');
         const instance = instances.get(instanceId);
-        if (instance) cleanup(instance);
+        if (pendingIds.has(instanceId) || instance?.transitioning)
+          throw new BoundaryFailure('operation-in-progress', messages['operation-in-progress']!);
+        if (instance)
+          exclusive(instance, () => {
+            cleanup(instance);
+            return '';
+          });
         return envelope(true, 'disposed', 'The instance is disposed.', { instanceId });
       }),
     getInfo: (componentId?: string): string =>
@@ -631,21 +803,34 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
   const runtime: RuntimeBridge = {
     api,
     inspect,
-    registerComponent: (definition) =>
+    registerComponent: (supplied, resourceContract) =>
       boundary(() => {
+        // Runtime schema checks establish the contract after generic type erasure.
+        const definition = supplied as unknown as ComponentDefinition;
         const validation = validateManifest(definition.manifest);
         requireValid(validation.diagnostics);
-        if (!validation.ok)
+        if (!validation.ok || !validation.value)
           throw new BoundaryFailure('validation-error', 'The component manifest is invalid.');
-        const manifest = definition.manifest;
+        const manifest = immutableSnapshot(validation.value);
+        const profileValidation = validateCapabilityProfile(
+          definition.profile ?? options.profile ?? capabilityProfile(),
+        );
+        requireValid(profileValidation.diagnostics);
+        if (!profileValidation.value)
+          throw new BoundaryFailure('validation-error', 'Invalid capability profile.');
+        const profile = immutableSnapshot(profileValidation.value);
         const existing = components.get(manifest.componentId);
         if (existing) {
-          if (canonicalJson(existing.manifest) !== canonicalJson(manifest))
+          if (
+            canonicalJson(existing.manifest) !== canonicalJson(manifest) ||
+            canonicalJson(existing.profile) !== canonicalJson(profile)
+          )
             throw new BoundaryFailure(
               'incompatible-component',
               'An incompatible component is already registered.',
               '/componentId',
             );
+          assets.define(manifest, resourceContract);
           return envelope(
             true,
             'registered',
@@ -659,7 +844,24 @@ export function createBridge(options: BridgeOptions = {}): RuntimeBridge {
             'The implementation does not match its manifest.',
             parity[0]!.path,
           );
-        components.set(manifest.componentId, definition);
+        if (
+          typeof definition.create !== 'function' ||
+          (definition.validateConfig !== undefined &&
+            typeof definition.validateConfig !== 'function')
+        )
+          throw new BoundaryFailure(
+            'implementation-contract-error',
+            'The component entry points are invalid.',
+          );
+        const captured: ComponentDefinition = {
+          profile,
+          manifest,
+          contract: immutableSnapshot(definition.contract),
+          create: definition.create,
+          ...(definition.validateConfig ? { validateConfig: definition.validateConfig } : {}),
+        };
+        assets.define(manifest, resourceContract);
+        components.set(manifest.componentId, Object.freeze(captured));
         return envelope(true, 'registered', 'The component contract was registered.');
       }),
   };

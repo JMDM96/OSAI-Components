@@ -9,7 +9,29 @@ permissions:
   contents: read
 
 jobs:
+  discover:
+    runs-on: windows-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm install --global npm@11.16.0
+      - run: npm ci
+      - id: matrix
+        shell: pwsh
+        run: |
+          $matrix = node --import tsx packages/build-tools/src/ci-matrix.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "matrix=$matrix" >> $env:GITHUB_OUTPUT
   verify:
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -21,12 +43,61 @@ jobs:
       - run: npm install --global npm@11.16.0
       - run: npm ci
       - run: npm run browsers:install
-      - run: npm run verify
+      - name: Verify selected component
+        shell: pwsh
+        env:
+          COMPONENT_ID: ${{ matrix.component }}
+          FIXTURE_MANIFEST: ${{ matrix.fixture }}
+        run: |
+          $arguments = @('--component', $env:COMPONENT_ID)
+          if ($env:FIXTURE_MANIFEST) { $arguments += @('--fixture', $env:FIXTURE_MANIFEST) }
+          npm run verify -- @arguments
+          exit $LASTEXITCODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: component-verification
+          name: component-${{ matrix.component }}
           path: |
             dist/
             test-results/
+          retention-days: 14
+  matrix-completeness:
+    needs: [discover, verify]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm install --global npm@11.16.0
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: component-*
+          merge-multiple: true
+      - run: node --import tsx packages/build-tools/src/ci-matrix.ts validate
+  workbench:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm install --global npm@11.16.0
+      - run: npm ci
+      - run: npm run browsers:install
+      - run: npm run build -- --all --fixture tests/fixtures/minimal/component.manifest.json --fixture tests/fixtures/resources/component.manifest.json
+      - run: npm run test:browser
+        env:
+          OSAI_WORKBENCH: 'true'
+          OSAI_COMPONENT: resources
+          OSAI_FIXTURE_MANIFESTS: '["tests/fixtures/minimal/component.manifest.json","tests/fixtures/resources/component.manifest.json"]'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workbench-verification
+          path: test-results/workbench/
           retention-days: 14

@@ -2,6 +2,7 @@ import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 import { normalizeConfig } from '@osai/contract-schemas';
 import fixture from '../../../tests/fixtures/minimal/src/index.js';
+import type { Bindings, Configuration } from '../../../tests/fixtures/minimal/src/generated.js';
 import type {
   ComponentContext,
   ComponentController,
@@ -18,10 +19,16 @@ function driver(
   const document = new JSDOM('<!doctype html><body></body>').window.document;
   const instances = new Map<
     string,
-    { root: HTMLElement; controller: ComponentController; disposed: boolean }
+    { root: HTMLElement; controller: ComponentController<Bindings>; disposed: boolean }
   >();
   const events = new Map<string, { name: string; payload: JsonValue }[]>();
   let disposed = false;
+  const configuration = (config: JsonObject): Configuration => {
+    const normalized = normalizeConfig(fixture.manifest, config).value;
+    if (!normalized || typeof normalized.label !== 'string')
+      throw new Error('Fixture config did not validate.');
+    return { label: normalized.label };
+  };
   return {
     create(id, config) {
       const root = document.createElement('div');
@@ -33,6 +40,9 @@ function driver(
         root,
         host: root,
         resources,
+        resolveAsset() {
+          throw new Error('No assets declared.');
+        },
         emit(name, payload) {
           events.get(id)?.push({ name: broken === 'event' ? 'undeclared' : name, payload });
         },
@@ -41,24 +51,28 @@ function driver(
         },
         registerShortcut: () => () => undefined,
       };
-      const normalized = normalizeConfig(fixture.manifest, config);
-      if (!normalized.value) throw new Error('Fixture config did not validate.');
       instances.set(id, {
         root,
-        controller: fixture.create(context, normalized.value),
+        controller: fixture.create(context, configuration(config)),
         disposed: false,
       });
     },
     update(id, config) {
-      const next = normalizeConfig(fixture.manifest, config).value;
-      if (!next) throw new Error('Fixture config did not validate.');
+      const next = configuration(config);
       instances.get(id)?.controller.prepareUpdate(next).commit();
       if (broken === 'crosstalk')
         for (const [other, instance] of instances)
           if (other !== id) instance.controller.prepareUpdate(next).commit();
     },
     invoke(id, command, args) {
-      const result = instances.get(id)?.controller.commands[command]?.(args);
+      if (
+        command !== 'read' ||
+        args === null ||
+        typeof args !== 'object' ||
+        Object.keys(args).length
+      )
+        throw new Error('Invalid fixture command.');
+      const result = instances.get(id)?.controller.commands.read({});
       return broken === 'result' ? 42 : (result ?? null);
     },
     dispose(id) {

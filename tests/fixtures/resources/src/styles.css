@@ -1,0 +1,15 @@
+[data-osai-component='resources'] {
+  color: #16293b;
+  background: #fff;
+  padding: 12px;
+}
+
+@font-face {
+  font-family: 'OSAI Fixture';
+  src: url('assets/fonts/fixture.woff') format('woff');
+}
+
+[data-osai-component='resources'] .fixture-glyph {
+  font-family: 'OSAI Fixture', sans-serif;
+  background-image: url('assets/images/pixel.png');
+}

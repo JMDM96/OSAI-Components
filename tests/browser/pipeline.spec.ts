@@ -7,7 +7,7 @@ import type { JsonObject } from '@osai/contract-schemas';
 import type { ComponentDefinition, ComponentManifest } from '@osai/component-sdk';
 import type { RuntimeBridge } from '../../packages/runtime-bridge/src/index.js';
 
-const suiteVersion = '1.0.0';
+const suiteVersion = '2.0.0';
 const gates = (...names: string[]): void => {
   for (const name of names) test.info().annotations.push({ type: 'gate', description: name });
 };
@@ -24,7 +24,7 @@ const selectedId = (page: Page) =>
   page.locator('[role="option"][aria-selected="true"]').getAttribute('data-command-id');
 
 test.beforeEach(async ({ page }, info) => {
-  await page.goto(`/?target=${targetOf(info)}`);
+  await page.goto(`/palette?target=${targetOf(info)}`);
   await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
 });
 test.afterEach(async ({ page, browser, request }, info) => {
@@ -41,6 +41,28 @@ test.afterEach(async ({ page, browser, request }, info) => {
         artifactChecksum: metadata.files['command-palette.js'],
         artifacts: metadata.files,
         gates: info.annotations.filter((a) => a.type === 'gate').map((a) => a.description),
+      }),
+    ),
+  });
+  await info.attach('scenario-evidence', {
+    contentType: 'application/json',
+    body: Buffer.from(
+      JSON.stringify({
+        schemaVersion: '2.0',
+        scenarioId: `palette/${info.title}`,
+        componentId: metadata.manifest.componentId,
+        version: metadata.manifest.version,
+        target: targetOf(info),
+        browser: info.project.use.browserName,
+        browserVersion: browser.version(),
+        suiteVersion,
+        contractHash: metadata.certification.contractHash,
+        profileHash: metadata.certification.profileHash,
+        descriptorHash: metadata.certification.descriptorHash,
+        suiteHash: metadata.certification.suiteHash,
+        policyHash: metadata.policyHash,
+        artifactChecksums: metadata.artifactChecksums,
+        passed: info.status === 'passed',
       }),
     ),
   });

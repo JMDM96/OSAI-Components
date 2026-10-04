@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "componentId": "command-palette",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "contractVersion": "1.0",
   "targets": ["odc", "o11-reactive"],
   "entry": "src/index.ts",

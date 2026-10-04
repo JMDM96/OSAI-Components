@@ -1,6 +1,12 @@
 {
-  "schemaVersion": "1.0",
-  "policyVersion": "1.0.0",
+  "schemaVersion": "2.0",
+  "policyVersion": "2.0.0",
+  "certification": {
+    "suiteVersion": "2.0.0",
+    "evidenceFormat": "2.0",
+    "independentObservations": true,
+    "exactScenarios": true
+  },
   "targets": ["odc", "o11-reactive"],
   "browsers": ["chromium", "firefox", "webkit"],
   "accessibility": {

@@ -21,7 +21,9 @@ export interface HostEvidence {
   results: Record<string, boolean>;
 }
 export interface CompatibilityEvidence {
-  schemaVersion: '1.0';
+  schemaVersion: '1.0' | '2.0';
+  provenance?: EvidenceProvenance;
+  scenarios?: { id: string; browser: string; passed: true }[];
   componentId: string;
   version: string;
   target: Target;
@@ -42,6 +44,8 @@ export interface CompatibilityEvidence {
   verifiedHostLanes?: HostLane[];
 }
 export interface EvidenceExpectations {
+  provenance?: EvidenceProvenance;
+  scenarios?: string[];
   componentId: string;
   version: string;
   target: Target;
@@ -50,6 +54,15 @@ export interface EvidenceExpectations {
   artifactChecksums: Record<string, string>;
   browserRevisions: Record<string, string>;
   gates: Record<string, { operator: 'at-most' | 'at-least'; threshold: number }>;
+}
+export interface EvidenceProvenance {
+  contractHash: string;
+  profileHash: string;
+  descriptorHash: string;
+  policyHash: string;
+  suiteHash: string;
+  profileId: string;
+  profileVersion: string;
 }
 
 const identifier: JsonSchema = { type: 'string', minLength: 1, pattern: '^\\S(?:[\\s\\S]*\\S)?$' };
@@ -84,7 +97,38 @@ export const compatibilityEvidenceSchema: JsonSchema = {
     'hostEvidence',
   ],
   properties: {
-    schemaVersion: { const: '1.0' },
+    schemaVersion: { enum: ['1.0', '2.0'] },
+    provenance: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'contractHash',
+        'profileHash',
+        'descriptorHash',
+        'policyHash',
+        'suiteHash',
+        'profileId',
+        'profileVersion',
+      ],
+      properties: {
+        ...Object.fromEntries(
+          ['contractHash', 'profileHash', 'descriptorHash', 'policyHash', 'suiteHash'].map(
+            (name) => [name, { type: 'string', pattern: '^[a-f0-9]{64}$' }],
+          ),
+        ),
+        profileId: identifier,
+        profileVersion: version,
+      },
+    },
+    scenarios: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'browser', 'passed'],
+        properties: { id: identifier, browser: identifier, passed: { const: true } },
+      },
+    },
     componentId: identifier,
     version,
     target,
@@ -166,6 +210,31 @@ export function validateEvidence(
   if (invalid.length) return invalid.map((issue) => `${issue.path}: ${issue.message}`);
   const record = input as CompatibilityEvidence;
   const errors: string[] = [];
+  if (record.schemaVersion === '2.0') {
+    if (!record.provenance || !record.scenarios)
+      errors.push('Format 2 requires provenance and scenario inventory.');
+    if (
+      expectations?.provenance &&
+      canonicalJson(record.provenance) !== canonicalJson(expectations.provenance)
+    )
+      errors.push('Evidence provenance differs from authoritative inputs.');
+    if (record.status !== 'generated') {
+      if (!expectations?.provenance || !expectations.scenarios?.length)
+        errors.push('Format 2 requires authoritative scenario expectations.');
+      const expected = browsers
+        .flatMap((browser) => (expectations?.scenarios ?? []).map((id) => `${browser}/${id}`))
+        .sort();
+      const actual = (record.scenarios ?? [])
+        .map((scenario) => `${scenario.browser}/${scenario.id}`)
+        .sort();
+      if (
+        new Set(actual).size !== actual.length ||
+        canonicalJson(actual) !== canonicalJson(expected)
+      )
+        errors.push('Scenario inventory is incomplete, duplicated or unexpected.');
+    }
+  } else if (record.provenance || record.scenarios || expectations?.provenance)
+    errors.push('Legacy evidence cannot satisfy format-2 certification.');
   const checkPaths = (checksums: Record<string, string>): void => {
     for (const path of Object.keys(checksums)) {
       if (

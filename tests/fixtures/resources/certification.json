@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0",
+  "componentId": "resources",
+  "profile": {
+    "id": "combined",
+    "version": "1.0.0"
+  },
+  "scenarioModule": "certification/scenarios.ts",
+  "validConfiguration": {
+    "label": "Ready",
+    "records": []
+  },
+  "invalidConfigurations": [
+    {
+      "records": 42
+    }
+  ],
+  "scenarios": [
+    { "id": "async-supersession", "kind": "capability", "member": "async-supersession" },
+    { "id": "async-disposal", "kind": "capability", "member": "async-disposal" },
+    { "id": "worker-lifecycle", "kind": "capability", "member": "worker-lifecycle" },
+    { "id": "portal-lifecycle", "kind": "capability", "member": "portal-lifecycle" },
+    {
+      "id": "provider-partial-failure",
+      "kind": "capability",
+      "member": "provider-partial-failure"
+    },
+    { "id": "provider-lifecycle", "kind": "capability", "member": "provider-lifecycle" },
+    {
+      "id": "command-start",
+      "kind": "command",
+      "member": "start"
+    },
+    {
+      "id": "command-read",
+      "kind": "command",
+      "member": "read"
+    },
+    {
+      "id": "event-completed",
+      "kind": "event",
+      "member": "completed"
+    },
+    {
+      "id": "accessible",
+      "kind": "accessibility",
+      "member": "root"
+    },
+    {
+      "id": "default",
+      "kind": "visual",
+      "member": "default"
+    }
+  ]
+}

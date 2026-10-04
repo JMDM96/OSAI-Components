@@ -1,6 +1,13 @@
-import type { ResourceScope } from '@osai/component-sdk';
+import type {
+  ResourceScope,
+  OperationContext,
+  ManagedOperation,
+  ProviderContract,
+  OwnedProvider,
+} from '@osai/component-sdk';
 
 export interface ResourceCounts {
+  operations: number;
   listeners: number;
   timers: number;
   observers: number;
@@ -14,6 +21,7 @@ export interface ResourceCounts {
 }
 
 export const emptyCounts = (): ResourceCounts => ({
+  operations: 0,
   listeners: 0,
   timers: 0,
   observers: 0,
@@ -80,16 +88,167 @@ export class BackgroundLocks {
 }
 
 export class ManagedResources implements ResourceScope {
-  readonly counts = emptyCounts();
+  readonly counts: ResourceCounts;
   private readonly cleanups = new Set<() => void>();
   private disposed = false;
+  private transaction?: {
+    provisional: Set<() => void>;
+    deferred: Set<() => void>;
+    promotions: Map<ManagedResources, Map<string, ManagedOperation>>;
+  };
+  private readonly transactionRoot: ManagedResources;
+  private parentRelease?: () => void;
+  private readonly operations = new Map<string, ManagedOperation>();
+  private generation = 0;
 
   constructor(
     private readonly view: Window,
     private readonly locks: BackgroundLocks,
     private readonly report: (code: string, cause?: unknown) => void,
     private readonly allowPortal: (element: HTMLElement) => boolean = () => false,
-  ) {}
+    parent?: ManagedResources,
+    private readonly allowProvider = false,
+    private readonly allowOperations = true,
+  ) {
+    this.transactionRoot = parent?.transactionRoot ?? this;
+    this.counts = parent?.counts ?? emptyCounts();
+  }
+
+  child(): ManagedResources {
+    const child = new ManagedResources(
+      this.view,
+      this.locks,
+      this.report,
+      this.allowPortal,
+      this,
+      this.allowProvider,
+      this.allowOperations,
+    );
+    child.parentRelease = this.track('disposables', () => child.dispose());
+    return child;
+  }
+
+  adoptProvider<T>(
+    contract: ProviderContract,
+    initialize: (scope: ResourceScope) => T,
+  ): OwnedProvider<T> {
+    if (
+      !this.allowProvider ||
+      this.disposed ||
+      !contract.id.trim() ||
+      contract.partialInitialization !== 'register-cleanup-before-allocation' ||
+      contract.update !== 'transactional' ||
+      contract.disposal !== 'scope' ||
+      !Array.isArray(contract.capabilities) ||
+      contract.capabilities.some(
+        (capability) =>
+          !['listeners', 'timers', 'observers', 'workers', 'portals'].includes(capability),
+      )
+    )
+      throw new Error('Provider ownership requires a supported profile and complete obligations.');
+    const scope = this.child();
+    try {
+      const value = initialize(scope);
+      if (
+        value &&
+        (typeof value === 'object' || typeof value === 'function') &&
+        typeof (value as { then?: unknown }).then === 'function'
+      ) {
+        void Promise.resolve(value).catch(() => {});
+        throw new Error('Provider initialization must be synchronous.');
+      }
+      return Object.freeze({ value, dispose: () => scope.dispose() });
+    } catch (cause) {
+      scope.dispose();
+      throw cause;
+    }
+  }
+
+  operation<T>(
+    key: string,
+    work: (context: OperationContext) => Promise<T>,
+    complete: (value: T) => void,
+    failed?: () => void,
+  ): ManagedOperation {
+    if (!this.allowOperations)
+      throw new Error('Managed operations require the managed-async capability profile.');
+    if (!key.trim()) throw new Error('Managed operation keys must be nonempty.');
+    const scope = this.child();
+    const controller = new AbortController();
+    const generation = ++this.generation;
+    const transaction = this.transactionRoot.transaction;
+    let pending = transaction?.promotions.get(this);
+    if (transaction && !pending) {
+      pending = new Map();
+      transaction.promotions.set(this, pending);
+    }
+    const current = pending ?? this.operations;
+    current.get(key)?.cancel();
+    let active = !this.disposed;
+    const operation: ManagedOperation = {
+      signal: controller.signal,
+      generation,
+      resources: scope,
+      isCurrent: () =>
+        active &&
+        !this.disposed &&
+        !this.transactionRoot.disposed &&
+        (this.operations.get(key) === operation ||
+          this.transactionRoot.transaction?.promotions.get(this)?.get(key) === operation),
+      cancel: () => release(),
+    };
+    const release = this.track('operations', () => {
+      active = false;
+      if (this.operations.get(key) === operation) this.operations.delete(key);
+      if (current.get(key) === operation) current.delete(key);
+      controller.abort();
+      scope.dispose();
+    });
+    if (active) current.set(key, operation);
+    void (async () => {
+      if (!active) return;
+      try {
+        const value = await work(operation);
+        if (operation.isCurrent()) complete(value);
+      } catch (cause) {
+        if (operation.isCurrent()) {
+          this.report('operation-error', cause);
+          try {
+            failed?.();
+          } catch (failureCause) {
+            this.report('operation-error', failureCause);
+          }
+        }
+      } finally {
+        release();
+      }
+    })();
+    return operation;
+  }
+
+  beginTransaction(): { commit(): void; rollback(): void } {
+    if (this.transactionRoot !== this || this.transaction || this.disposed)
+      throw new Error('Resource transition is unavailable.');
+    const transaction = {
+      provisional: new Set<() => void>(),
+      deferred: new Set<() => void>(),
+      promotions: new Map<ManagedResources, Map<string, ManagedOperation>>(),
+    };
+    this.transaction = transaction;
+    const finish = (commit: boolean): void => {
+      if (this.transaction !== transaction) return;
+      delete this.transaction;
+      if (commit)
+        for (const [scope, operations] of transaction.promotions)
+          for (const [key, operation] of operations) {
+            scope.operations.get(key)?.cancel();
+            scope.operations.set(key, operation);
+          }
+      const releases = commit ? transaction.deferred : transaction.provisional;
+      for (const release of [...releases].reverse()) release();
+    };
+    return { commit: () => finish(true), rollback: () => finish(false) };
+  }
 
   track(kind: keyof ResourceCounts, cleanup: () => void): () => void {
     if (this.disposed) {
@@ -104,6 +263,11 @@ export class ManagedResources implements ResourceScope {
     let active = true;
     const release = (): void => {
       if (!active) return;
+      const transaction = this.transactionRoot.transaction;
+      if (transaction && !transaction.provisional.has(release)) {
+        transaction.deferred.add(release);
+        return;
+      }
       active = false;
       this.cleanups.delete(release);
       try {
@@ -116,6 +280,7 @@ export class ManagedResources implements ResourceScope {
       }
     };
     this.cleanups.add(release);
+    this.transactionRoot.transaction?.provisional.add(release);
     return release;
   }
 
@@ -201,8 +366,16 @@ export class ManagedResources implements ResourceScope {
 
   dispose(): void {
     if (this.disposed) return;
+    const transaction = this.transactionRoot.transaction;
+    if (transaction && (!this.parentRelease || !transaction.provisional.has(this.parentRelease))) {
+      if (this.parentRelease) this.parentRelease();
+      else transaction.deferred.add(() => this.dispose());
+      return;
+    }
     this.disposed = true;
+    delete this.transaction;
     for (const cleanup of [...this.cleanups].reverse()) cleanup();
+    this.parentRelease?.();
   }
 }
 

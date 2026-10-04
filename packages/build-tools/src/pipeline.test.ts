@@ -70,7 +70,7 @@ describe('release registration', () => {
     componentId: componentManifest.componentId,
     version: '1.0.0',
     payloadDigest: checksum('first'),
-    manifest: componentManifest,
+    manifest: { ...componentManifest, version: '1.0.0' },
   };
   test('versions are immutable and exact retries are idempotent', () => {
     expect(checkRegistration([], first)).toBe('new');
@@ -114,9 +114,15 @@ describe('build graph', () => {
     const output = await mkdtemp(join(tmpdir(), 'osai-build-test-'));
     const result = await buildRelease(root, { outputRoot: output });
     expect(result.measurements.odc.javascriptGzipBytes).toBeLessThanOrEqual(61440);
-    expect(result.checksums['odc/command-palette.js']).toBe(
-      result.checksums['o11-reactive/command-palette.js'],
-    );
+    for (const target of ['odc', 'o11-reactive']) {
+      const resources = JSON.parse(await readFile(join(output, target, 'resources.json'), 'utf8'));
+      expect(resources.registration.target).toBe(target);
+      expect(resources.registration.componentId).toBe('command-palette');
+      expect(
+        resources.assets.find((asset: { id: string }) => asset.id === 'command-palette.js')
+          .integrity,
+      ).toMatch(/^sha256-/);
+    }
     expect(await readFile(join(output, 'odc/manifest.json'), 'utf8')).toBe(
       await readFile(join(output, 'o11-reactive/manifest.json'), 'utf8'),
     );

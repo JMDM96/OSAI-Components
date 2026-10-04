@@ -11,6 +11,17 @@ import { loadManifest } from '@osai/contract-schemas/authoring';
 import type { Target } from '@osai/contract-schemas';
 import { loadPolicy } from './policy.js';
 import type { ReleasePolicy } from './policy.js';
+import { selectComponents } from './registry.js';
+import type { ComponentSelection } from './registry.js';
+import {
+  loadCertification,
+  requiredInventory,
+  validateScenarioInventory,
+  validateObservations,
+  SUITE_VERSION,
+} from './certification.js';
+import type { Certification } from './certification.js';
+import type { EvidenceProvenance } from '@osai/adapter-schema';
 
 interface BrowserAttachment {
   name: string;
@@ -23,6 +34,7 @@ interface BrowserResult {
   attachments?: BrowserAttachment[];
 }
 interface BrowserTest {
+  title?: string;
   projectName: string;
   annotations?: { type: string; description?: string }[];
   results: BrowserResult[];
@@ -72,7 +84,7 @@ interface VerificationAuthority {
   requiredGates: string[];
 }
 
-function policyGates(policy: ReleasePolicy): EvidenceExpectations['gates'] {
+export function policyGates(policy: ReleasePolicy): EvidenceExpectations['gates'] {
   const result: EvidenceExpectations['gates'] = Object.fromEntries(
     [
       'schema',
@@ -101,7 +113,7 @@ function policyGates(policy: ReleasePolicy): EvidenceExpectations['gates'] {
 }
 
 async function authority(root: string, release: BuiltRelease): Promise<VerificationAuthority> {
-  const config = await readConfiguration(root);
+  const config = await readConfiguration(root, { manifestFile: release.config.manifest });
   const policy = await loadPolicy(resolve(root, config.policy));
   const loaded = await loadManifest(resolve(root, config.manifest));
   if (
@@ -194,7 +206,6 @@ function validateUnitReport(unit: UnitReport): void {
     'contract-schemas',
     'component-sdk',
     'runtime-bridge',
-    'command-palette',
     'build-tools',
     'adapter-schema',
   ])
@@ -234,7 +245,9 @@ interface UnitReport {
 
 function flatten(suites: BrowserSuite[]): BrowserTest[] {
   return suites.flatMap((suite) => [
-    ...(suite.specs ?? []).flatMap((spec) => spec.tests),
+    ...(suite.specs ?? []).flatMap((spec) =>
+      spec.tests.map((test) => ({ ...test, title: spec.title })),
+    ),
     ...flatten(suite.suites ?? []),
   ]);
 }
@@ -277,10 +290,18 @@ function gate(
   };
 }
 
-export async function runStep(root: string, name: string, script: string): Promise<void> {
+export async function runStep(
+  root: string,
+  name: string,
+  script: string,
+  environment: Record<string, string> = {},
+): Promise<void> {
   const npm =
     process.env.npm_execpath ?? join(dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js');
-  const log = join(root, 'test-results/gates', `${name}.log`);
+  const component = environment.OSAI_COMPONENT;
+  if (component && !/^[a-z][a-z0-9-]*$/.test(component))
+    throw new Error('Invalid report component.');
+  const log = join(root, 'test-results', ...(component ? [component] : []), 'gates', `${name}.log`);
   await mkdir(dirname(log), { recursive: true });
   console.log(`Verifying ${name}…`);
   const result = spawnSync(process.execPath, [npm, 'run', script], {
@@ -288,7 +309,7 @@ export async function runStep(root: string, name: string, script: string): Promi
     encoding: 'utf8',
     windowsHide: true,
     maxBuffer: 16 * 1024 * 1024,
-    env: { ...process.env, FORCE_COLOR: '0' },
+    env: { ...process.env, FORCE_COLOR: '0', ...environment },
   });
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   await writeFile(log, output, 'utf8');
@@ -298,7 +319,7 @@ export async function runStep(root: string, name: string, script: string): Promi
     );
 }
 
-export async function collectEvidence(
+export async function collectLegacyEvidence(
   root: string,
   release: BuiltRelease,
   report: BrowserReport,
@@ -510,6 +531,408 @@ export async function collectEvidence(
   return records;
 }
 
+export function evidenceProvenance(
+  certification: Certification,
+  policy: ReleasePolicy,
+): EvidenceProvenance {
+  return {
+    contractHash: certification.contractHash,
+    profileHash: certification.profileHash,
+    descriptorHash: certification.descriptorHash,
+    suiteHash: certification.suiteHash,
+    policyHash: checksum(canonicalJson(policy)),
+    profileId: certification.profile.profileId,
+    profileVersion: certification.profile.version,
+  };
+}
+interface ScenarioProof extends Omit<EvidenceProvenance, 'profileId' | 'profileVersion'> {
+  schemaVersion: '2.0';
+  scenarioId: string;
+  componentId: string;
+  version: string;
+  target: string;
+  browser: string;
+  browserVersion: string;
+  suiteVersion: string;
+  artifactChecksums: Record<string, string>;
+  passed: boolean;
+  measurement?: unknown;
+  afterCleanup?: {
+    after: Record<string, unknown>;
+    before: { effects: number };
+    managed: {
+      instances: number;
+      subscriptions: number;
+      pendingEvents: number;
+      resources: Record<string, number>;
+    };
+  };
+}
+const observedResourceNames = [
+  'listeners',
+  'timers',
+  'animationFrames',
+  'observers',
+  'workers',
+  'portals',
+];
+function benchmarkFailures(value: unknown, certification: Certification): number {
+  const report = value as {
+    settings: unknown;
+    workloads: {
+      records: number;
+      samples: Record<string, number[]>;
+      create: { p95Ms: number; worstMs: number };
+      update: { p95Ms: number; worstMs: number };
+      input: { p95Ms: number; worstMs: number };
+    }[];
+    environment: Record<string, unknown>;
+    resources: Record<string, unknown>;
+  };
+  const expected = certification.profile.benchmark;
+  if (
+    !report ||
+    canonicalJson(report.settings) !== canonicalJson(expected) ||
+    !Array.isArray(report.workloads) ||
+    canonicalJson(report.workloads.map((item) => item.records)) !==
+      canonicalJson(expected.datasets) ||
+    !report.environment?.userAgent ||
+    !report.environment.platform
+  )
+    throw new Error('Incomplete benchmark protocol evidence.');
+  let failures = 0;
+  for (const workload of report.workloads)
+    for (const operation of ['create', 'update', 'input'] as const) {
+      const samples = workload.samples?.[operation];
+      if (
+        !Array.isArray(samples) ||
+        samples.length !== expected.samples ||
+        samples.some((value) => !Number.isFinite(value) || value < 0)
+      )
+        throw new Error('Invalid benchmark samples.');
+      const sorted = [...samples].sort((a, b) => a - b);
+      const p95Ms = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
+      const worstMs = sorted.at(-1)!;
+      if (canonicalJson(workload[operation]) !== canonicalJson({ p95Ms, worstMs }))
+        throw new Error('Benchmark summary differs from measured samples.');
+      failures +=
+        Number(p95Ms > expected[operation].p95Ms) + Number(worstMs > expected[operation].worstMs);
+    }
+  if (observedResourceNames.some((name) => report.resources?.[name] !== 0)) failures++;
+  return failures;
+}
+export async function collectEvidence(
+  root: string,
+  release: BuiltRelease,
+  report: BrowserReport,
+): Promise<CompatibilityEvidence[]> {
+  const trusted = await authority(root, release);
+  const [selected] = await selectComponents(root, { manifestFile: release.config.manifest });
+  const certification = await loadCertification(selected!);
+  const inventory = await requiredInventory(root, certification);
+  const provenance = evidenceProvenance(certification, release.policy);
+  if (
+    !report?.stats ||
+    report.errors?.length ||
+    report.stats.unexpected ||
+    report.stats.skipped ||
+    report.stats.flaky
+  )
+    throw new Error('Browser report has errors, failures, skipped, or flaky tests.');
+  const tests = flatten(report.suites);
+  if (report.stats.expected !== tests.length || !tests.length)
+    throw new Error('Browser report count or project matrix differs from the required suite.');
+  const projects = release.config.targets.flatMap((target) =>
+    release.policy.browsers.map((browser) => `${target}-${browser}`),
+  );
+  if (tests.some((test) => !projects.includes(test.projectName)))
+    throw new Error('Unexpected browser project matrix.');
+  const records: CompatibilityEvidence[] = [];
+  for (const target of release.config.targets) {
+    const scenarios: NonNullable<CompatibilityEvidence['scenarios']> = [];
+    const browserResults: CompatibilityEvidence['browserResults'] = [];
+    for (const browser of release.policy.browsers) {
+      const cases = tests.filter((test) => test.projectName === `${target}-${browser}`);
+      if (!cases.length) throw new Error('Missing pinned browser coverage.');
+      if (failing(cases)) throw new Error('No complete passing browser suite.');
+      const proofs = await Promise.all(
+        cases.map((test) => attachment<ScenarioProof>(test, 'scenario-evidence')),
+      );
+      const pin = trusted.pins.find((pin) => pin.name === browser)!;
+      for (let index = 0; index < proofs.length; index++) {
+        const proof = proofs[index];
+        const title = cases[index]!.title;
+        const compatibility = await attachment<BrowserProof>(
+          cases[index]!,
+          'compatibility-evidence',
+        );
+        if (
+          compatibility &&
+          (compatibility.target !== target ||
+            compatibility.browser !== browser ||
+            compatibility.browserVersion !== pin.browserVersion ||
+            compatibility.suiteVersion !== SUITE_VERSION ||
+            compatibility.policyVersion !== release.policy.policyVersion ||
+            compatibility.artifactChecksum !==
+              release.checksums[`${target}/${release.manifest.componentId}.js`] ||
+            canonicalJson(compatibility.artifacts) !==
+              canonicalJson(
+                Object.fromEntries(
+                  ['js', 'css'].map((extension) => [
+                    `${release.manifest.componentId}.${extension}`,
+                    release.checksums[`${target}/${release.manifest.componentId}.${extension}`],
+                  ]),
+                ),
+              ))
+        )
+          throw new Error('Compatibility proof does not match the built payload.');
+        const legacyLeaks = await attachment<LeakProof>(cases[index]!, 'leak-measurements');
+        if (legacyLeaks) {
+          if (
+            resourceNames.some((key) => !Number.isInteger(legacyLeaks.snapshot?.resources?.[key]))
+          )
+            throw new Error('Invalid leak measurements.');
+          if (Object.values(legacyLeaks.snapshot.resources).some((value) => value !== 0))
+            throw new Error('Observed leaks.');
+          if (legacyLeaks.cycles < certification.profile.benchmark.lifecycleCycles)
+            throw new Error('Missing lifecycle-cycles.');
+        }
+        const a11y = await attachment<{ violations: number }>(
+          cases[index]!,
+          'accessibility-measurements',
+        );
+        if (a11y && a11y.violations !== 0) throw new Error('Failed accessibility measurement.');
+        if (
+          !proof ||
+          proof.schemaVersion !== '2.0' ||
+          proof.passed !== true ||
+          proof.componentId !== release.manifest.componentId ||
+          proof.version !== release.manifest.version ||
+          proof.target !== target ||
+          proof.browser !== browser ||
+          proof.browserVersion !== pin.browserVersion ||
+          proof.suiteVersion !== SUITE_VERSION ||
+          canonicalJson(proof.artifactChecksums) !== canonicalJson(release.checksums) ||
+          ['contractHash', 'profileHash', 'descriptorHash', 'suiteHash', 'policyHash'].some(
+            (key) =>
+              proof[key as keyof ScenarioProof] !== provenance[key as keyof EvidenceProvenance],
+          ) ||
+          !title ||
+          proof.scenarioId !==
+            (title.startsWith('platform/') || title.startsWith('component/')
+              ? title
+              : `palette/${title}`)
+        )
+          throw new Error(
+            'Scenario proof does not match authoritative provenance or test identity.',
+          );
+        if (proof.scenarioId.startsWith('platform/') || proof.scenarioId.startsWith('component/')) {
+          const cleanup = proof.afterCleanup;
+          if (
+            !cleanup ||
+            cleanup.managed.instances !== 0 ||
+            cleanup.managed.subscriptions !== 0 ||
+            cleanup.managed.pendingEvents !== 0 ||
+            [...resourceNames, 'operations'].some((key) => cleanup.managed.resources[key] !== 0) ||
+            (proof.scenarioId !== 'platform/accessibility' &&
+              observedResourceNames.some((key) => cleanup.after[key] !== 0))
+          )
+            throw new Error('Independent cleanup evidence is incomplete or leaking.');
+          const capabilityObservation =
+            proof.scenarioId === 'platform/accessibility'
+              ? (
+                  proof.measurement as
+                    { componentObservations?: Record<string, unknown> } | undefined
+                )?.componentObservations
+              : cleanup.after;
+          const observed = capabilityObservation as unknown as {
+            workerUrls: string[];
+            origins: string[];
+            portalSelectors: string[];
+            apis: string[];
+          };
+          if (
+            !capabilityObservation ||
+            !['workerUrls', 'origins', 'portalSelectors', 'apis'].every((key) =>
+              Array.isArray(capabilityObservation[key]),
+            )
+          )
+            throw new Error('Missing observed capability evidence.');
+          const urls = Object.fromEntries(
+            release.manifest.assets.map((asset) => [
+              asset.path,
+              asset.origin
+                ? `${asset.origin}/${asset.path}`
+                : (observed.workerUrls.find(
+                    (url) =>
+                      new URL(url).pathname ===
+                      `/artifacts/${release.manifest.componentId}/${release.manifest.version}/${target}/${asset.path}`,
+                  ) ?? ''),
+            ]),
+          );
+          validateObservations(
+            release.manifest,
+            {
+              workers: observed.workerUrls,
+              origins: observed.origins,
+              portals: observed.portalSelectors,
+              apis: observed.apis,
+            },
+            urls,
+          );
+        }
+        if (proof.scenarioId === 'platform/cleanup') {
+          const measurement = proof.measurement as { cycles: number };
+          if (
+            !measurement ||
+            measurement.cycles < certification.profile.benchmark.lifecycleCycles ||
+            proof.afterCleanup!.before.effects !== proof.afterCleanup!.after.effects
+          )
+            throw new Error('Missing lifecycle cycles or post-disposal effects detected.');
+        }
+        const capabilityScenario = certification.descriptor.scenarios.find(
+          (item) => item.kind === 'capability' && `platform/${item.member}` === proof.scenarioId,
+        );
+        if (proof.scenarioId.startsWith('component/') || capabilityScenario) {
+          const scenario =
+            capabilityScenario ??
+            certification.descriptor.scenarios.find(
+              (item) => `component/${item.id}` === proof.scenarioId,
+            );
+          const measurement = proof.measurement as
+            { assertions?: number; commands?: string[]; events?: string[] } | undefined;
+          if (
+            !scenario ||
+            !Number.isInteger(measurement?.assertions) ||
+            measurement!.assertions! < 1 ||
+            (scenario.kind === 'command' && !measurement?.commands?.includes(scenario.member)) ||
+            (scenario.kind === 'event' && !measurement?.events?.includes(scenario.member))
+          )
+            throw new Error('Missing component behavioral measurement.');
+        }
+        if (
+          proof.scenarioId === 'platform/accessibility' &&
+          (proof.measurement as { violations: number })?.violations !== 0
+        )
+          throw new Error('Missing or failing accessibility measurement.');
+        if (
+          proof.scenarioId === 'platform/negative-listener' &&
+          (proof.measurement as { rejected: boolean })?.rejected !== true
+        )
+          throw new Error('Negative listener gate was not exercised.');
+        if (proof.scenarioId === 'platform/negative-performance') {
+          const measurement = proof.measurement as
+            { rejected?: boolean; measuredMs?: number; thresholdMs?: number } | undefined;
+          if (
+            measurement?.rejected !== true ||
+            measurement.thresholdMs !== certification.profile.benchmark.input.worstMs ||
+            !Number.isFinite(measurement.measuredMs) ||
+            measurement.measuredMs! <= measurement.thresholdMs
+          )
+            throw new Error('Real slow-input negative fixture was not measured and rejected.');
+        }
+        if (
+          proof.scenarioId === 'platform/benchmark' &&
+          benchmarkFailures(proof.measurement, certification)
+        )
+          throw new Error('Performance profile exceeded.');
+        scenarios.push({ id: proof.scenarioId, browser, passed: true });
+      }
+      validateScenarioInventory(
+        inventory,
+        proofs.map((proof) => proof!.scenarioId),
+      );
+      browserResults.push({
+        browser,
+        revision: pin.revision,
+        version: pin.browserVersion,
+        passed: cases.length,
+        failed: 0,
+        skipped: 0,
+      });
+    }
+    const measures = release.measurements[target];
+    const gates = Object.entries(trusted.gates).map(([name, rule]) =>
+      gate(
+        name,
+        name === 'lifecycle-cycles'
+          ? certification.profile.benchmark.lifecycleCycles
+          : name === 'javascript-size'
+            ? measures.javascriptGzipBytes
+            : name === 'css-size'
+              ? measures.cssGzipBytes
+              : name === 'dependencies'
+                ? measures.dependencyFindings
+                : name === 'csp'
+                  ? measures.securityFindings
+                  : 0,
+        rule.threshold,
+        ['size', 'javascript-size', 'css-size'].includes(name)
+          ? 'shared/release.json'
+          : 'evidence/reports/browser.json',
+        rule.operator,
+      ),
+    );
+    const record: CompatibilityEvidence = {
+      schemaVersion: '2.0',
+      componentId: release.manifest.componentId,
+      version: release.manifest.version,
+      target,
+      status: 'browser-verified',
+      policyVersion: release.policy.policyVersion,
+      suiteVersion: SUITE_VERSION,
+      artifactChecksums: release.checksums,
+      browserResults,
+      gates,
+      hostEvidence: [],
+      provenance,
+      scenarios,
+    };
+    const issues = validateEvidence(record, trusted.requiredGates, release.policy.browsers, {
+      ...expectations(release, target, trusted),
+      suiteVersion: SUITE_VERSION,
+      provenance,
+      scenarios: inventory,
+    });
+    if (issues.length) throw new Error(`Evidence validation failed: ${issues.join('; ')}`);
+    records.push(record);
+  }
+  return records;
+}
+
+/** Readiness is recomputed from the archived report, never from a badge string. */
+export async function evidenceReadiness(
+  root: string,
+  release: BuiltRelease,
+  record: CompatibilityEvidence,
+  target: Target,
+): Promise<CompatibilityEvidence['status'] | 'stale'> {
+  try {
+    const trusted = await authority(root, release);
+    const [component] = await selectComponents(root, { manifestFile: release.config.manifest });
+    const certification = await loadCertification(component!, root);
+    const issues = validateEvidence(record, trusted.requiredGates, release.policy.browsers, {
+      ...expectations(release, target, trusted),
+      suiteVersion: SUITE_VERSION,
+      provenance: evidenceProvenance(certification, release.policy),
+      scenarios: await requiredInventory(root, certification),
+    });
+    if (issues.length) return 'stale';
+    if (record.status === 'generated') return 'generated';
+    const report = JSON.parse(
+      await readFile(join(release.root, 'evidence/reports/browser.json'), 'utf8'),
+    ) as BrowserReport;
+    const measured = (await collectEvidence(root, release, report)).find(
+      (item) => item.target === target,
+    )!;
+    const browserOnly = { ...record, status: 'browser-verified', hostEvidence: [] };
+    delete browserOnly.verifiedHostLanes;
+    return canonicalJson(browserOnly) === canonicalJson(measured) ? record.status : 'stale';
+  } catch {
+    return 'stale';
+  }
+}
+
 export async function registerVerifiedRelease(
   release: BuiltRelease,
   records: CompatibilityEvidence[],
@@ -517,6 +940,10 @@ export async function registerVerifiedRelease(
   root = process.cwd(),
 ): Promise<void> {
   const trusted = await authority(root, release);
+  const [component] = await selectComponents(root, { manifestFile: release.config.manifest });
+  const certification = await loadCertification(component!, root);
+  const inventory = await requiredInventory(root, certification);
+  const provenance = evidenceProvenance(certification, release.policy);
   if (
     records.length !== release.config.targets.length ||
     new Set(records.map((record) => record.target)).size !== records.length
@@ -526,13 +953,19 @@ export async function registerVerifiedRelease(
     const record = records.find((value) => value.target === target);
     if (!record || record.status !== 'browser-verified' || record.hostEvidence.length)
       throw new Error('Local registration requires browser verification without tenant claims.');
-    const issues = validateEvidence(
+    const expandedIssues = validateEvidence(
       record,
       trusted.requiredGates,
       release.policy.browsers,
-      expectations(release, target, trusted),
+      {
+        ...expectations(release, target, trusted),
+        suiteVersion: SUITE_VERSION,
+        provenance,
+        scenarios: inventory,
+      },
     );
-    if (issues.length) throw new Error(`Release evidence is invalid: ${issues.join('; ')}`);
+    if (expandedIssues.length)
+      throw new Error(`Release evidence is invalid: ${expandedIssues.join('; ')}`);
     for (const browser of record.browserResults)
       if (
         browser.version !== trusted.pins.find((pin) => pin.name === browser.browser)?.browserVersion
@@ -585,19 +1018,28 @@ export async function registerVerifiedRelease(
   });
 }
 
-export async function verify(root: string, register: boolean, version?: string): Promise<void> {
+export async function verify(
+  root: string,
+  register: boolean,
+  version?: string,
+  selection: ComponentSelection = {},
+): Promise<void> {
+  const selected = await selectComponents(root, selection);
+  if (selected.length !== 1 || (register && selected[0]!.fixture))
+    throw new Error('Verification requires one eligible component.');
+  const configuration = await readConfiguration(root, selection);
   let stage = 'configuration';
   let policyVersion: string | null = null;
   try {
-    const configuration = await readConfiguration(root);
     policyVersion = (await loadPolicy(resolve(root, configuration.policy))).policyVersion;
-    stage = 'schema';
-    const { manifest } = await validateComponent(root);
+    const manifest = selected[0]!.manifest;
     stage = 'version';
     if (version && version !== manifest.version)
       throw new Error(
         `Requested version ${version} differs from manifest ${manifest.version}; update the source contract first.`,
       );
+    stage = 'schema';
+    await validateComponent(root, configuration.manifest);
     for (const [name, script] of [
       ['format', 'format:check'],
       ['lint', 'lint'],
@@ -605,34 +1047,45 @@ export async function verify(root: string, register: boolean, version?: string):
       ['unit', 'test:unit'],
     ] as const) {
       stage = name;
-      await runStep(root, name, script);
+      await runStep(root, name, script, { OSAI_COMPONENT: manifest.componentId });
     }
     stage = 'unit-evidence';
     const unit = JSON.parse(
-      await readFile(join(root, 'test-results/unit.json'), 'utf8'),
+      await readFile(join(root, 'test-results', manifest.componentId, 'unit.json'), 'utf8'),
     ) as UnitReport;
     validateUnitReport(unit);
     stage = 'build';
-    const release = await buildRelease(root);
+    const release = await buildRelease(root, { selection });
     stage = 'browser';
-    await runStep(root, 'browser', 'test:browser');
+    await runStep(root, 'browser', 'test:browser', {
+      OSAI_COMPONENT: manifest.componentId,
+      OSAI_FIXTURE_MANIFESTS: JSON.stringify(selection.fixtureManifests ?? []),
+      CI: 'true',
+      OSAI_WORKBENCH: 'false',
+    });
     stage = 'reproducibility';
     const { proveCleanWorkspaceReproducibility } = await import('./clean-workspaces.js');
-    const reproduced = await proveCleanWorkspaceReproducibility(root, { onProgress: console.log });
+    const reproduced = await proveCleanWorkspaceReproducibility(root, {
+      onProgress: console.log,
+      selection,
+    });
     if (canonicalJson(reproduced.first.checksums) !== canonicalJson(release.checksums))
       throw new Error('Clean workspace build differs from verified workspace build.');
     stage = 'browser-evidence';
     const report = JSON.parse(
-      await readFile(join(root, 'test-results/browser.json'), 'utf8'),
+      await readFile(join(root, 'test-results', manifest.componentId, 'browser.json'), 'utf8'),
     ) as BrowserReport;
     const records = await collectEvidence(root, release, report);
     stage = 'evidence-archive';
     const reports = join(release.root, 'evidence/reports');
     await mkdir(reports, { recursive: true });
     for (const file of ['unit.json', 'browser.json'])
-      await cp(join(root, 'test-results', file), join(reports, file));
+      await cp(join(root, 'test-results', manifest.componentId, file), join(reports, file));
     for (const name of ['format', 'lint', 'types', 'unit', 'browser'])
-      await cp(join(root, 'test-results/gates', `${name}.log`), join(reports, `${name}.log`));
+      await cp(
+        join(root, 'test-results', manifest.componentId, 'gates', `${name}.log`),
+        join(reports, `${name}.log`),
+      );
     for (const name of ['schema', 'contract', 'dependencies', 'csp'])
       await writeFile(
         join(reports, `${name}.log`),
@@ -651,27 +1104,39 @@ export async function verify(root: string, register: boolean, version?: string):
       stage = 'registration';
       await registerVerifiedRelease(release, records, join(root, 'releases/catalog.json'), root);
     }
+    await writeJson(join(root, 'test-results', manifest.componentId, 'verification.json'), {
+      schemaVersion: '2.0',
+      componentId: manifest.componentId,
+      version: manifest.version,
+      status: 'browser-verified',
+      payloadDigest: checksum(canonicalJson(release.checksums)),
+      records,
+    });
     console.log(
       `${register ? 'Registered' : 'Verified'} ${manifest.componentId}@${manifest.version}: ${unit.numTotalTests} unit tests, ${report.stats.expected} browser tests; both targets browser-verified.\n${release.root}`,
     );
   } catch (error) {
-    await writeJson(join(root, 'test-results/verification-failure.json'), {
-      schemaVersion: '1.0',
-      operation: register ? 'release' : 'verify',
-      occurredAt: new Date().toISOString(),
-      policyVersion,
-      stage,
-      gate: stage,
-      metric: 'failed-checks',
-      measured: 1,
-      threshold: 0,
-      operator: 'at-most',
-      passed: false,
-      error: {
-        name: error instanceof Error ? error.name : 'Error',
-        message: error instanceof Error ? error.message : String(error),
+    await writeJson(
+      join(root, 'test-results', selected[0]!.manifest.componentId, 'verification-failure.json'),
+      {
+        schemaVersion: '1.0',
+        operation: register ? 'release' : 'verify',
+        componentId: selected[0]!.manifest.componentId,
+        occurredAt: new Date().toISOString(),
+        policyVersion,
+        stage,
+        gate: stage,
+        metric: 'failed-checks',
+        measured: 1,
+        threshold: 0,
+        operator: 'at-most',
+        passed: false,
+        error: {
+          name: error instanceof Error ? error.name : 'Error',
+          message: error instanceof Error ? error.message : String(error),
+        },
       },
-    });
+    );
     throw error;
   }
 }

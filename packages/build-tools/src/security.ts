@@ -116,6 +116,21 @@ export function scanJavaScript(
     node: ts.Node,
     kind: 'network' | 'asset' | 'worker' = 'network',
   ): void => {
+    if (
+      expression &&
+      ts.isCallExpression(expression) &&
+      pathOf(expression.expression)?.at(-1) === 'resolveAsset'
+    ) {
+      const id = staticText(expression.arguments[0]);
+      const asset = manifest.assets.find((item) => item.path === id);
+      if (
+        !asset ||
+        (kind === 'worker' &&
+          (asset.type !== 'worker' || !manifest.capabilities.workers.includes(id!)))
+      )
+        report('undeclared-asset', node, 'Logical resource is not declared for this usage.');
+      return;
+    }
     let url = staticText(expression);
     if (
       expression &&
@@ -310,7 +325,11 @@ export function scanJavaScript(
   return findings;
 }
 
-export function scanCssResources(source: string, manifest: ComponentManifest): Diagnostic[] {
+export function scanCssResources(
+  source: string,
+  manifest: ComponentManifest,
+  assetPath = '',
+): Diagnostic[] {
   const findings: Diagnostic[] = [];
   const inspect = (url: string, path: string): void => {
     if (/^(?:data|javascript|blob):/i.test(url)) {
@@ -321,9 +340,13 @@ export function scanCssResources(source: string, manifest: ComponentManifest): D
       });
       return;
     }
+    const resolved =
+      assetPath && !/^[a-z]+:/i.test(url)
+        ? new URL(url, `https://osai.invalid/${assetPath}`).pathname.slice(1)
+        : url;
     const declared = manifest.assets.some(
       (asset) =>
-        asset.path === url ||
+        asset.path === resolved ||
         (asset.origin && `${asset.origin}/${asset.path.replace(/^\//, '')}` === url),
     );
     if (!declared)

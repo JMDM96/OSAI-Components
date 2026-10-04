@@ -8,6 +8,8 @@ export default defineConfig({
     testTimeout: 15000,
     maxWorkers: 4,
     reporters: ['default', 'json'],
-    outputFile: { json: 'test-results/unit.json' },
+    outputFile: {
+      json: `test-results/${process.env.OSAI_COMPONENT ? `${process.env.OSAI_COMPONENT}/` : ''}unit.json`,
+    },
   },
 });

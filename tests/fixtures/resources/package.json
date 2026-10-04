@@ -1,0 +1,14 @@
+{
+  "name": "@osai/fixture-resources",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@osai/component-sdk": "1.0.0",
+    "@osai/contract-schemas": "1.0.0"
+  }
+}

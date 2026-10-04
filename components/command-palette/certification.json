@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0",
+  "componentId": "command-palette",
+  "profile": {
+    "id": "base-ui",
+    "version": "1.0.0"
+  },
+  "scenarioModule": "certification/scenarios.ts",
+  "validConfiguration": {
+    "commands": [
+      {
+        "id": "one",
+        "label": "One"
+      }
+    ]
+  },
+  "invalidConfigurations": [{}],
+  "scenarios": [
+    {
+      "id": "command-open",
+      "kind": "command",
+      "member": "open"
+    },
+    {
+      "id": "command-close",
+      "kind": "command",
+      "member": "close"
+    },
+    {
+      "id": "command-toggle",
+      "kind": "command",
+      "member": "toggle"
+    },
+    {
+      "id": "event-opened",
+      "kind": "event",
+      "member": "opened"
+    },
+    {
+      "id": "event-closed",
+      "kind": "event",
+      "member": "closed"
+    },
+    {
+      "id": "event-queryChanged",
+      "kind": "event",
+      "member": "queryChanged"
+    },
+    {
+      "id": "event-commandSelected",
+      "kind": "event",
+      "member": "commandSelected"
+    },
+    {
+      "id": "event-error",
+      "kind": "event",
+      "member": "error"
+    },
+    {
+      "id": "accessible",
+      "kind": "accessibility",
+      "member": "root"
+    },
+    {
+      "id": "default",
+      "kind": "visual",
+      "member": "default"
+    }
+  ]
+}

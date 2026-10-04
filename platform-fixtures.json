@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "1.0",
+  "manifests": [
+    "tests/fixtures/minimal/component.manifest.json",
+    "tests/fixtures/resources/component.manifest.json"
+  ]
+}

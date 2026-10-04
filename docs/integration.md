@@ -1,5 +1,7 @@
 # OutSystems integration boundary
 
+For hardened releases, follow the [format migration](distribution.md#hardening-format-migration): adapter format `2.0` describes the complete resource graph and detached native plan. Legacy format `1.0` remains inspectable but cannot establish the new handoff certification level. Existing create/update/invoke/callback/dispose call signatures remain supported; required auxiliary mappings are registered separately before creation. Local migration does not authorize authentication, native edits, publication or deployment, and its live ODC checkpoint remains **not executed**.
+
 The repository produces browser assets and a precise adapter contract. Creating a native Library Block remains a Studio or separately authorized Mentor workflow. No local build downloads OML, invents asset/environment keys, contacts a tenant or publishes an application.
 
 Use the target's generated `integration.md`, `adapter.json`, schemas and checksums together. A target label records the intended host; it does not prove that a tenant has executed the package. Start with ODC, then repeat the same smoke tests independently for OS11 Reactive/Mobile. Traditional Web is excluded.
@@ -46,3 +48,34 @@ Run these checks on the exact checksummed release in the named platform version:
 Record target, platform version, environment and asset identity, suite version, artifact checksums, lane (`reactive-web` or `mobile-webview`) and each measured result. A real mobile-webview run is separate evidence from desktop Reactive Web. Failed or absent smoke results leave artifacts at most `browser-verified`.
 
 The local evidence validator rejects an OutSystems-level claim without the required host checks and matching hashes. It validates report structure and consistency; an evidence record itself is not a cryptographic attestation of who performed a test. Keep raw reports and any organization-required approvals with the named environment's release records.
+
+# Host resource registration
+
+For adapter format 2.0, import every local graph asset and satisfy `resources.json`
+loading order, licenses, integrity and CSP. Read the generated `integration.md` for
+a release-specific `registerResources(componentId, registrationJson)` example.
+Call it after the Required Script has registered the component and before Ready/create.
+Its JSON contains `schemaVersion: "2.0"`, the exact `releaseId`, and one mapping per
+declared auxiliary logical ID, each with an inspected host URL and its exact integrity.
+
+For example, `workers/local.js` can map to
+`https://your-host.example/StaticResources/Library/Version/workers/local.js` while
+the screen is under `/Orders/Detail`. Component code calls
+`context.resolveAsset('workers/local.js')`; no screen or execution URL is inferred.
+Local resources must remain on the document origin, and external resources must
+match their declared origin. Preserve directory relationships among stylesheets
+and their relative font/image URLs when importing them. Hosts enforce the actual
+bytes through immutable resources/SRI and CSP; the mapping API checks supplied
+identities, not downloaded content. Worker constructors have no native SRI input.
+
+Creation with missing mappings reports `resources-not-registered`. Missing IDs or
+integrity/release mismatches report `invalid-resource-mapping`; disallowed URLs
+report `disallowed-resource-origin`. Identical registration is idempotent.
+Incompatible URL changes while instances are live report `resources-in-use` and
+preserve existing resolution. Dispose all instances before remapping. An instance's
+resolver cannot be used after disposal. Existing create/update/invoke/callback/dispose
+signatures remain unchanged. Components with no auxiliary assets need no URL mappings.
+
+Local preparation and inspection grant no tenant mutation, publication or deployment
+authority. A legacy adapter can be inspected, but new native handoffs require the
+complete format-2 graph and fresh matching certification.

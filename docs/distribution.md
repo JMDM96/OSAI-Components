@@ -1,5 +1,15 @@
 # Distribution and release workflow
 
+## Hardening format migration
+
+Formats have independent version domains. The browser bridge and normalized manifest retain contract/schema `1.0`; generated authoring bindings, certification descriptors and capability profiles introduce format `1.0`. Expanded adapter/resource handoffs use adapter format `2.0`, and scenario-complete evidence uses evidence format `2.0`. The expanded policy format is `2.0`, with an independently incremented policy version whenever acceptance rules change. Reject unknown formats rather than guessing compatibility.
+
+Legacy adapter, evidence and policy format `1.0` remains available for historical inspection. Inspection must not rewrite legacy payloads, convert historical reports into new qualification, or treat incomplete resource metadata as a complete native handoff. New evidence must bind the component/version, target, normalized contract, complete unsigned artifact inventory, profile/policy versions and hashes, suite inventory and pinned browsers. A change to any bound input requires fresh evidence.
+
+Host lifecycle call signatures and synchronous JSON envelopes remain supported. Resource registration is additive and precedes creation when auxiliary assets require mappings. It does not add resource URLs to public component configuration. Detached native plans are generated after the unsigned inventory and bind its digest; neither the inventory nor a detached plan hashes itself.
+
+Registered `command-palette` **1.0.0** payloads and catalog records are immutable. Changed hardening outputs must use a new version and new output directory before building; never overwrite or requalify registered 1.0.0 bytes. Breaking source-authoring/certification requirements and incompatible existing host obligations require a major version. Compatible added host members require at least a minor version; implementation-only corrections may use a patch. The hardened palette is classified as a major migration because its authoring and certification requirements change. Release classification and registration must still validate the actual manifest and previous catalog record.
+
 The pipeline builds one component revision into separate `odc` and `o11-reactive` packages. Their public contract is identical; each has independent target metadata and compatibility evidence. JavaScript and CSS may be byte-identical. OS11 Traditional Web and native plugins are excluded.
 
 ## Commands
@@ -80,3 +90,36 @@ The local catalog is append-only by the release command. Verification failure le
 Compatibility status has three levels. `generated` means assets exist. `browser-verified` requires every mandatory gate and the pinned Chromium, Firefox and WebKit suite for the target. `OutSystems-verified` additionally requires a named target platform version, asset/environment identity, exact artifact checksums and passing real host smoke tests. Desktop browser results do not establish mobile-webview behavior.
 
 `release-policy.json` is the versioned source for gate thresholds. Reports include its version, measured values and thresholds, so failures are actionable. Current budgets are 60 KiB gzip JavaScript including the bridge and 12 KiB gzip CSS per command-palette target, with zero mandatory check failures, zero automated accessibility violations, and at least 100 lifecycle cycles ending with zero retained managed resources. Visual baselines are reviewed input; updating them intentionally is distinct from proving an unchanged baseline passes.
+
+# Complete resource graph (format 2.0)
+
+Each new target package has `resources.json` and an adapter with `schemaVersion: "2.0"`.
+The resource inventory includes the principal JS/CSS, every declared local worker,
+script, stylesheet, image, font and JSON data file, plus declared external assets.
+Local JS/MJS worker and script entries are bundled for ES2017. All their imports
+enter the dependency/license inventory. Every emitted script and stylesheet is
+scanned; unresolved imports, dynamic evaluation and undeclared origins fail builds.
+Workers cannot assume that a host external global exists inside their own realm.
+
+Opaque copying is restricted to JSON, WOFF/WOFF2 and PNG/JPEG/WebP with recognized
+format headers. Browser decoding remains a separate qualification check. SVG,
+HTML, WASM and opaque executable formats are unsupported. Auxiliary JS and CSS
+count toward their respective aggregate gzip budgets. Every local graph member
+enters the release checksum map; metadata also records individual integrity,
+byte size, gzip size, usage and the complete loading order. External dependencies
+retain exact version, origin, global, license, load order, SRI and CSP requirements;
+their remotely supplied bytes are not represented as locally scanned bytes.
+
+The embedded resource release ID hashes the normalized manifest, the principal
+script before resource binding, and auxiliary graph identities. Final payload
+checksums cover the bound script and metadata. This two-stage domain prevents a
+self-referential hash while ensuring runtime/worker changes get a new identity.
+Evidence binds the full final payload map, never only the principal script.
+
+`tests/fixtures/resources` supplies original, reproducible worker/font/image assets
+for graph qualification. `node tests/fixtures/resources/generate-assets.mjs`
+regenerates its tiny font and image; the font is a test glyph, not a production typeface.
+The fixture is opt-in and cannot enter normal production release discovery.
+
+Legacy adapter-v1 packages remain read-only inspection inputs. They have incomplete
+handoff metadata and cannot be upgraded by relabelling historical evidence.

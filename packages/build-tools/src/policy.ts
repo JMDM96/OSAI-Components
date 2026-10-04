@@ -3,7 +3,13 @@ import { validateJsonSchema } from '@osai/contract-schemas';
 import type { JsonSchema, Target } from '@osai/contract-schemas';
 
 export interface ReleasePolicy {
-  schemaVersion: '1.0';
+  schemaVersion: '1.0' | '2.0';
+  certification?: {
+    suiteVersion: '2.0.0';
+    evidenceFormat: '2.0';
+    independentObservations: true;
+    exactScenarios: true;
+  };
   policyVersion: string;
   targets: Target[];
   browsers: string[];
@@ -41,7 +47,7 @@ const object = (properties: Record<string, JsonSchema>): JsonSchema => ({
   additionalProperties: false,
   properties,
 });
-export const releasePolicySchema = object({
+const legacyPolicySchema = object({
   schemaVersion: { const: '1.0' },
   policyVersion: { type: 'string', pattern: '^\\d+\\.\\d+\\.\\d+$' },
   targets: { ...strings, minItems: 2, maxItems: 2, items: { enum: ['odc', 'o11-reactive'] } },
@@ -77,6 +83,27 @@ export const releasePolicySchema = object({
   dependencies: object({ allowedLicenses: strings, requireExactVersions: { const: true } }),
   mandatoryGates: strings,
 });
+export const releasePolicySchema: JsonSchema = {
+  anyOf: [
+    legacyPolicySchema,
+    {
+      ...legacyPolicySchema,
+      required: [...(legacyPolicySchema.required ?? []), 'certification'],
+      properties: {
+        ...legacyPolicySchema.properties,
+        schemaVersion: { const: '2.0' },
+        certification: {
+          const: {
+            suiteVersion: '2.0.0',
+            evidenceFormat: '2.0',
+            independentObservations: true,
+            exactScenarios: true,
+          },
+        },
+      },
+    },
+  ],
+};
 
 export function validatePolicy(input: unknown): ReleasePolicy {
   const errors = validateJsonSchema(releasePolicySchema, input);
