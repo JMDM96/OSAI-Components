@@ -1,0 +1,33 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../.build/packages/build-tools",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../.build/build-tools.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "*.json"],
+  "exclude": ["**/*.test.ts"],
+  "references": [
+    {
+      "path": "../component-sdk"
+    },
+    {
+      "path": "../contract-schemas"
+    },
+    {
+      "path": "../runtime-bridge"
+    },
+    {
+      "path": "../adapter-schema"
+    },
+    {
+      "path": "../targets/odc"
+    },
+    {
+      "path": "../targets/o11-reactive"
+    },
+    {
+      "path": "../../components/command-palette"
+    }
+  ]
+}

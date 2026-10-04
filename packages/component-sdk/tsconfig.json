@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../.build/packages/component-sdk",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../.build/component-sdk.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "*.json"],
+  "exclude": ["**/*.test.ts"],
+  "references": [{ "path": "../contract-schemas" }]
+}

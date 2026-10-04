@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "componentId": "minimal",
+  "version": "1.0.0",
+  "contractVersion": "1.0",
+  "targets": ["odc", "o11-reactive"],
+  "entry": "src/index.ts",
+  "styles": ["src/styles.css"],
+  "properties": {
+    "label": {
+      "schema": { "$ref": "schemas/label.json" },
+      "required": false,
+      "default": "Hello",
+      "access": "readwrite",
+      "updateMode": "live"
+    }
+  },
+  "commands": {
+    "read": {
+      "arguments": { "type": "object", "additionalProperties": false },
+      "result": { "type": "string" },
+      "execution": "sync"
+    }
+  },
+  "events": {
+    "read": {
+      "schema": {
+        "type": "object",
+        "properties": { "label": { "type": "string" } },
+        "required": ["label"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "themeTokens": {
+    "--osai-minimal-color": { "schema": { "type": "string", "minLength": 1 }, "default": "#222222" }
+  },
+  "capabilities": {
+    "browserApis": [],
+    "networkOrigins": [],
+    "workers": [],
+    "portals": [],
+    "globalStyles": [],
+    "keyframes": [],
+    "fonts": []
+  },
+  "dependencies": [],
+  "assets": []
+}

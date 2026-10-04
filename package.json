@@ -1,0 +1,58 @@
+{
+  "name": "osai-components",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "26.3.1",
+    "npm": "11.16.0"
+  },
+  "packageManager": "npm@11.16.0",
+  "workspaces": [
+    "packages/*",
+    "packages/targets/*",
+    "components/*"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . && stylelint \"components/**/*.css\" \"tests/browser-harness/*.css\"",
+    "typecheck": "tsc -b && tsc -p tsconfig.tests.json",
+    "test:unit": "vitest run",
+    "browsers:install": "tsx packages/build-tools/src/browser-cli.ts install chromium firefox webkit",
+    "test:browser": "tsx packages/build-tools/src/browser-cli.ts test",
+    "test:visual:update": "tsx packages/build-tools/src/browser-cli.ts test --grep visual --update-snapshots",
+    "build": "tsx packages/build-tools/src/cli.ts build",
+    "validate": "tsx packages/build-tools/src/cli.ts validate",
+    "inspect": "tsx packages/build-tools/src/cli.ts inspect",
+    "verify": "tsx packages/build-tools/src/cli.ts verify",
+    "release": "tsx packages/build-tools/src/cli.ts release",
+    "reproduce": "tsx packages/build-tools/src/cli.ts reproduce",
+    "preview": "tsx tests/browser-harness/server.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/jsdom": "30.0.0",
+    "@types/node": "26.6.4",
+    "@types/semver": "7.8.0",
+    "ajv": "8.20.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "jsdom": "30.1.2",
+    "postcss": "8.5.28",
+    "postcss-selector-parser": "7.1.6",
+    "prettier": "3.9.9",
+    "semver": "7.8.5",
+    "stylelint": "17.16.0",
+    "stylelint-config-standard": "40.0.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

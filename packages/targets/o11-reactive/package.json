@@ -1,0 +1,10 @@
+{
+  "name": "@osai/target-o11-reactive",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "license": "UNLICENSED"
+}

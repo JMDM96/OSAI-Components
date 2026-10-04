@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../.build/packages/adapter-schema",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../.build/adapter-schema.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "*.json"],
+  "exclude": ["**/*.test.ts"],
+  "references": [
+    {
+      "path": "../component-sdk"
+    },
+    {
+      "path": "../contract-schemas"
+    }
+  ]
+}

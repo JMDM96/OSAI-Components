@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../../.build/packages/targets/odc",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../../.build/target-odc.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "*.json"],
+  "exclude": ["**/*.test.ts"],
+  "references": []
+}

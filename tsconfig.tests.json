@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "noEmit": true, "composite": false, "types": ["node", "vitest/globals"] },
+  "include": ["packages/**/*.ts", "components/**/*.ts", "tests/**/*.ts", "*.config.ts"],
+  "exclude": ["tests/fixtures/type-errors/**", "node_modules", "dist", ".build"]
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "name": "missing identity",
+    "remove": "componentId",
+    "path": "/componentId",
+    "code": "required-property"
+  },
+  {
+    "name": "unsupported version",
+    "set": "schemaVersion",
+    "value": "2.0",
+    "path": "/schemaVersion",
+    "code": "unsupported-schema-version"
+  },
+  { "name": "missing assets", "remove": "assets", "path": "/assets", "code": "required-property" },
+  {
+    "name": "bad target",
+    "set": "targets",
+    "value": ["traditional"],
+    "path": "/targets/0",
+    "code": "invalid-enum"
+  }
+]

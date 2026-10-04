@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "policyVersion": "1.0.0",
+  "targets": ["odc", "o11-reactive"],
+  "browsers": ["chromium", "firefox", "webkit"],
+  "accessibility": {
+    "standard": "WCAG-2.2-AA",
+    "axeTags": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+    "maxViolations": 0,
+    "minViewportWidth": 320,
+    "zoomPercent": 200,
+    "behaviors": ["keyboard", "focus", "announcements", "rtl", "reduced-motion", "narrow", "zoom"]
+  },
+  "lifecycle": { "minCycles": 100, "maxRetainedResources": 0 },
+  "budgets": { "javascriptGzipBytes": 61440, "cssGzipBytes": 12288 },
+  "visual": { "maxDiffPixels": 0, "threshold": 0.2 },
+  "security": {
+    "maxFindings": 0,
+    "allowEval": false,
+    "allowInlineHandlers": false,
+    "allowUndeclaredOrigins": false
+  },
+  "dependencies": {
+    "allowedLicenses": ["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "0BSD"],
+    "requireExactVersions": true
+  },
+  "mandatoryGates": [
+    "schema",
+    "types",
+    "lint",
+    "unit",
+    "contract",
+    "browser",
+    "accessibility",
+    "keyboard",
+    "theme",
+    "rtl",
+    "visual",
+    "csp",
+    "size",
+    "multi-instance",
+    "lifecycle",
+    "leaks",
+    "dependencies",
+    "reproducibility"
+  ]
+}

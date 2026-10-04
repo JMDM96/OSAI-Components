@@ -1,0 +1,18 @@
+{
+  "name": "@osai/build-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@osai/component-sdk": "1.0.0",
+    "@osai/contract-schemas": "1.0.0",
+    "@osai/runtime-bridge": "1.0.0",
+    "@osai/adapter-schema": "1.0.0",
+    "@osai/target-odc": "1.0.0",
+    "@osai/target-o11-reactive": "1.0.0"
+  }
+}

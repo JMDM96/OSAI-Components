@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "componentId": "schema-data",
+  "version": "1.0.0",
+  "contractVersion": "1.0",
+  "targets": ["odc"],
+  "entry": "src/index.ts",
+  "styles": ["src/styles.css"],
+  "properties": {
+    "default": {
+      "schema": { "$ref": "payload.json" },
+      "required": false,
+      "default": { "$ref": "business-data-not-a-schema-reference" },
+      "access": "readwrite",
+      "updateMode": "live"
+    }
+  },
+  "commands": {},
+  "events": {},
+  "themeTokens": {},
+  "capabilities": {
+    "browserApis": [],
+    "networkOrigins": [],
+    "workers": [],
+    "portals": [],
+    "globalStyles": [],
+    "keyframes": [],
+    "fonts": []
+  },
+  "dependencies": [],
+  "assets": []
+}

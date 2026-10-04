@@ -1,0 +1,8 @@
+{
+  "namespace": "OSAI.Components.v1",
+  "component": "command-palette",
+  "manifest": "components/command-palette/component.manifest.json",
+  "targets": ["odc", "o11-reactive"],
+  "target": "es2017",
+  "policy": "release-policy.json"
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../../.build/packages/targets/o11-reactive",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../../.build/target-o11-reactive.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "*.json"],
+  "exclude": ["**/*.test.ts"],
+  "references": []
+}

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OSAI · Component workspace</title>
+    <link rel="stylesheet" href="/harness.css" />
+    <link rel="stylesheet" href="/artifacts/{{target}}/command-palette.css" />
+    <script defer src="/artifacts/{{target}}/command-palette.js"></script>
+    <script defer src="/harness.js"></script>
+  </head>
+  <body>
+    <div class="workspace" id="background">
+      <aside class="sidebar" aria-label="Workspace navigation">
+        <a class="brand" href="#workspace"
+          ><span class="brand-mark" aria-hidden="true">o</span> OSAI</a
+        >
+        <p class="nav-label">COMPONENT LAB</p>
+        <nav aria-label="Main">
+          <a href="#workspace" aria-current="page">Workspace</a
+          ><a href="#library">Component library</a><a href="#activity">Activity</a>
+        </nav>
+        <div class="sidebar-footer">
+          <span class="avatar">JD</span><span>Jordan Davis<small>Builder workspace</small></span>
+        </div>
+      </aside>
+      <main id="workspace">
+        <header class="topbar">
+          <span>Workspace <span class="breadcrumb">/ Overview</span></span
+          ><span class="status-pill">Local preview</span>
+        </header>
+        <div class="main-content">
+          <p class="eyebrow">BUILD ONCE. BRING IT EVERYWHERE.</p>
+          <h1>A faster way to work.</h1>
+          <p class="intro">Your commands, projects, and next steps. One place to find them.</p>
+          <section class="launcher" aria-labelledby="launch-title">
+            <div>
+              <span class="launch-icon" aria-hidden="true">⌘</span>
+              <h2 id="launch-title">Launch anything.</h2>
+              <p>Search your workspace without leaving the flow.</p>
+            </div>
+            <button id="open-palette" type="button">Open command palette <kbd>Ctrl K</kbd></button>
+          </section>
+          <section aria-labelledby="projects-title" id="library">
+            <div class="section-heading">
+              <h2 id="projects-title">Recent projects</h2>
+              <span>3 projects</span>
+            </div>
+            <div class="project-grid">
+              <article>
+                <span class="project-icon blue">W</span>
+                <h3>Workspace refresh</h3>
+                <p>A thoughtful interface for everyday work.</p>
+                <small>Updated today</small>
+              </article>
+              <article>
+                <span class="project-icon violet">D</span>
+                <h3>Design system</h3>
+                <p>Shared foundations, consistent experiences.</p>
+                <small>Updated yesterday</small>
+              </article>
+              <article>
+                <span class="project-icon green">C</span>
+                <h3>Customer portal</h3>
+                <p>A clearer path from request to resolution.</p>
+                <small>Updated 2 days ago</small>
+              </article>
+            </div>
+          </section>
+          <section class="harness-controls" id="activity" aria-label="Lifecycle controls">
+            <button id="update-palette" type="button">Refresh commands</button
+            ><button id="destroy-palette" type="button">Destroy Block</button
+            ><button id="recreate-palette" type="button">Create Block</button
+            ><label for="outside-input">Host input</label
+            ><input id="outside-input" placeholder="Editable host context" /><output
+              id="host-status"
+              role="status"
+              >Ready</output
+            >
+          </section>
+        </div>
+      </main>
+    </div>
+    <div id="harness-hosts"></div>
+  </body>
+</html>

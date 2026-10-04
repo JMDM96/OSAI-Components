@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "1.0",
+  "componentId": "command-palette",
+  "version": "1.0.0",
+  "contractVersion": "1.0",
+  "targets": ["odc", "o11-reactive"],
+  "entry": "src/index.ts",
+  "styles": ["src/styles.css"],
+  "properties": {
+    "commands": {
+      "schema": { "$ref": "schemas/config.schema.json#/properties/commands" },
+      "required": true,
+      "access": "readwrite",
+      "updateMode": "live"
+    },
+    "title": {
+      "schema": { "$ref": "schemas/config.schema.json#/properties/title" },
+      "required": false,
+      "default": "Command palette",
+      "access": "readwrite",
+      "updateMode": "live"
+    },
+    "placeholder": {
+      "schema": { "$ref": "schemas/config.schema.json#/properties/placeholder" },
+      "required": false,
+      "default": "Search commands…",
+      "access": "readwrite",
+      "updateMode": "live"
+    },
+    "emptyMessage": {
+      "schema": { "$ref": "schemas/config.schema.json#/properties/emptyMessage" },
+      "required": false,
+      "default": "No commands found.",
+      "access": "readwrite",
+      "updateMode": "live"
+    },
+    "shortcut": {
+      "schema": { "$ref": "schemas/config.schema.json#/properties/shortcut" },
+      "required": false,
+      "default": "",
+      "access": "readwrite",
+      "updateMode": "live"
+    },
+    "closeOnSelect": {
+      "schema": { "$ref": "schemas/config.schema.json#/properties/closeOnSelect" },
+      "required": false,
+      "default": true,
+      "access": "readwrite",
+      "updateMode": "live"
+    }
+  },
+  "commands": {
+    "open": {
+      "arguments": { "$ref": "schemas/command-arguments.schema.json" },
+      "result": { "$ref": "schemas/command-result.schema.json" },
+      "execution": "sync"
+    },
+    "close": {
+      "arguments": { "$ref": "schemas/command-arguments.schema.json" },
+      "result": { "$ref": "schemas/command-result.schema.json" },
+      "execution": "sync"
+    },
+    "toggle": {
+      "arguments": { "$ref": "schemas/command-arguments.schema.json" },
+      "result": { "$ref": "schemas/command-result.schema.json" },
+      "execution": "sync"
+    }
+  },
+  "events": {
+    "opened": { "schema": { "$ref": "schemas/events.schema.json#/definitions/opened" } },
+    "closed": { "schema": { "$ref": "schemas/events.schema.json#/definitions/closed" } },
+    "queryChanged": {
+      "schema": { "$ref": "schemas/events.schema.json#/definitions/queryChanged" }
+    },
+    "commandSelected": {
+      "schema": { "$ref": "schemas/events.schema.json#/definitions/commandSelected" }
+    },
+    "error": { "schema": { "$ref": "schemas/events.schema.json#/definitions/error" } }
+  },
+  "themeTokens": {
+    "--osai-command-palette-background": {
+      "schema": { "type": "string", "minLength": 1 },
+      "default": "#ffffff"
+    },
+    "--osai-command-palette-text": {
+      "schema": { "type": "string", "minLength": 1 },
+      "default": "#19202b"
+    },
+    "--osai-command-palette-muted": {
+      "schema": { "type": "string", "minLength": 1 },
+      "default": "#596474"
+    },
+    "--osai-command-palette-border": {
+      "schema": { "type": "string", "minLength": 1 },
+      "default": "#d6dce5"
+    },
+    "--osai-command-palette-accent": {
+      "schema": { "type": "string", "minLength": 1 },
+      "default": "#185cc7"
+    },
+    "--osai-command-palette-active-background": {
+      "schema": { "type": "string", "minLength": 1 },
+      "default": "#edf3ff"
+    },
+    "--osai-command-palette-overlay": {
+      "schema": { "type": "string", "minLength": 1 },
+      "default": "rgb(18 26 40 / 48%)"
+    },
+    "--osai-command-palette-radius": {
+      "schema": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?(?:px|rem|em)$" },
+      "default": "16px"
+    },
+    "--osai-command-palette-width": {
+      "schema": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?(?:px|rem|em|vw|%)$" },
+      "default": "640px"
+    },
+    "--osai-command-palette-z-index": {
+      "schema": { "type": "string", "pattern": "^[0-9]+$" },
+      "default": "1000"
+    }
+  },
+  "capabilities": {
+    "browserApis": [
+      "Document",
+      "HTMLElement",
+      "KeyboardEvent",
+      "String.normalize",
+      "Element.scrollIntoView",
+      "Element.replaceChildren",
+      "HTMLElement.focus",
+      "HTMLElement.inert",
+      "Navigator.platform"
+    ],
+    "networkOrigins": [],
+    "workers": [],
+    "portals": [],
+    "globalStyles": [],
+    "keyframes": [],
+    "fonts": []
+  },
+  "dependencies": [],
+  "assets": []
+}

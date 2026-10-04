@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../.build/packages/runtime-bridge",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../.build/runtime-bridge.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "*.json"],
+  "exclude": ["**/*.test.ts"],
+  "references": [
+    {
+      "path": "../component-sdk"
+    },
+    {
+      "path": "../contract-schemas"
+    }
+  ]
+}

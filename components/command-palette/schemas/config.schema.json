@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["commands"],
+  "properties": {
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "keywords": { "type": "array", "items": { "type": "string" } },
+          "group": { "type": "string" },
+          "disabled": { "type": "boolean" },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "hint": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "title": { "type": "string", "minLength": 1, "default": "Command palette" },
+    "placeholder": { "type": "string", "default": "Search commands…" },
+    "emptyMessage": { "type": "string", "default": "No commands found." },
+    "shortcut": {
+      "type": "string",
+      "pattern": "^(?:|(?:(?:[Mm][Oo][Dd]|[Cc][Tt][Rr][Ll]|[Cc][Oo][Nn][Tt][Rr][Oo][Ll]|[Mm][Ee][Tt][Aa]|[Aa][Ll][Tt]|[Ss][Hh][Ii][Ff][Tt])\\+)+[A-Za-z0-9])$",
+      "default": ""
+    },
+    "closeOnSelect": { "type": "boolean", "default": true }
+  }
+}

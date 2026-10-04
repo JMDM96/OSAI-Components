@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/component-sdk" },
+    { "path": "packages/contract-schemas" },
+    { "path": "packages/runtime-bridge" },
+    { "path": "packages/adapter-schema" },
+    { "path": "packages/targets/odc" },
+    { "path": "packages/targets/o11-reactive" },
+    { "path": "components/command-palette" },
+    { "path": "packages/build-tools" }
+  ]
+}

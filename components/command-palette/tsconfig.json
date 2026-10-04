@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../.build/components/command-palette",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../.build/command-palette.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "*.json", "schemas/**/*.json"],
+  "exclude": ["**/*.test.ts"],
+  "references": [
+    {
+      "path": "../../packages/component-sdk"
+    },
+    {
+      "path": "../../packages/contract-schemas"
+    }
+  ]
+}

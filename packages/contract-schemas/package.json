@@ -1,0 +1,11 @@
+{
+  "name": "@osai/contract-schemas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./authoring": "./src/authoring.ts"
+  },
+  "license": "UNLICENSED"
+}
