@@ -55,4 +55,6 @@ Removed or modified public members, changed defaults and update behavior, remove
 
 Writers obtain an exclusive catalog lock, reread and validate the current catalog under that lock, sync a uniquely named pending file, and atomically replace the catalog. Concurrent releases cannot overwrite each other's appended entries. Failed or conflicting candidates leave prior records unchanged. A lock records its process ID and candidate identity; a crashed writer may leave a lock requiring inspection before retry. The implementation does not automatically delete another writer's lock based on age.
 
+Commit `releases/catalog.json` after a successful internal registration. The writer owns its deterministic canonical JSON formatting, so it is excluded from Prettier alongside the lockfile; do not edit or reformat catalog records manually.
+
 Future components follow the same manifest, SDK, runtime, distribution, and evidence requirements. A Gantt component can be proposed separately once its data model, rendering dependencies, accessibility behavior, size budgets, and target capabilities are specified.

@@ -8,3 +8,4 @@ coverage/
 .agents/
 openspec/
 package-lock.json
+releases/catalog.json

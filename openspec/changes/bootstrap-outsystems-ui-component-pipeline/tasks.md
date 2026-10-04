@@ -2,12 +2,12 @@
 
 ## 1. Establish the locked workspace and release policy
 
-- [ ] 1.1 Create the root npm workspace, pin the supported Node and npm versions, commit the lockfile, and verify a clean `npm ci` succeeds.
+- [x] 1.1 Create the root npm workspace, pin the supported Node and npm versions, commit the lockfile, and verify a clean `npm ci` succeeds.
 - [x] 1.2 Create the package, target, component, fixture, and browser-harness directories from `design.md`, add workspace metadata and TypeScript project references, and verify `npm query .workspace` discovers every intended workspace.
 - [x] 1.3 Configure strict TypeScript with an ES2017 runtime baseline, ESLint, Stylelint, Vitest, Playwright, esbuild, and JSON Schema tooling; add root `lint`, `typecheck`, `test:unit`, `build`, `test:browser`, and `verify` scripts and verify the empty baseline passes.
 - [x] 1.4 Add repository ignores and deterministic-build settings for generated output, caches, source maps, path separators, timestamps, and line endings, and verify two clean baseline builds produce the same tracked inputs.
 - [x] 1.5 Define and schema-validate `release-policy.json` version 1 with the browser, WCAG 2.2 A/AA, keyboard, viewport, zoom, RTL, reduced-motion, lifecycle, leak, visual, JavaScript-size, CSS-size, CSP, and dependency thresholds from the design; verify valid and invalid policy fixtures pass and fail as expected.
-- [ ] 1.6 Document workspace setup, the standard root commands, artifact status meanings, and the explicit exclusion of tenant publication in the root README; verify every documented local command runs as written.
+- [x] 1.6 Document workspace setup, the standard root commands, artifact status meanings, and the explicit exclusion of tenant publication in the root README; verify every documented local command runs as written.
 
 ## 2. Implement the manifest contract and component SDK
 
@@ -44,7 +44,7 @@
 - [x] 4.6 Implement production scans for dynamic evaluation, inline handlers, unresolved modules, accidental Node APIs, undeclared globals, runtime fetches, and CSP origins/resource types; verify malicious fixtures fail with actionable findings.
 - [x] 4.7 Implement byte-level reproducibility checks for unsigned payloads while keeping timestamps, signatures, and attestations separate; verify two clean builds have identical payload checksums.
 - [x] 4.8 Implement public-contract diffing, semantic-version enforcement, and an append-only local release-catalog format, and verify breaking changes without a major bump and changed bytes under a registered version are rejected.
-- [ ] 4.9 Document target capability overrides, artifact anatomy, dependency policy, CSP reports, reproducibility, and internal registration commands; verify each documented inspection command succeeds on a fixture release.
+- [x] 4.9 Document target capability overrides, artifact anatomy, dependency policy, CSP reports, reproducibility, and internal registration commands; verify each documented inspection command succeeds on a fixture release.
 
 ## 5. Generate OutSystems adapter contracts and evidence records
 
@@ -77,13 +77,13 @@
 - [x] 7.4 Add multi-instance, duplicate-bridge-load, shortcut-contention, recreation-required, conditional-render, navigation-overlap, invalid-payload, and callback-failure browser tests, and verify every operation remains instance-isolated and atomic.
 - [x] 7.5 Add instrumented leak testing for at least 100 create/update/invoke/dispose cycles, and verify zero remaining registry entries, subscriptions, managed listeners, timers, observers, portals, background locks, and owned roots.
 - [x] 7.6 Add visual baselines and policy-controlled comparison for closed, open, query, empty, disabled, grouped, RTL, narrow, zoomed, and reduced-motion states, and verify unapproved pixel differences block the relevant target.
-- [ ] 7.7 Generate machine-readable gate and compatibility reports from measured schema, test, browser, accessibility, visual, CSP, dependency, size, reproducibility, and leak results, and verify failures include the policy version, gate, threshold, and measured value.
-- [ ] 7.8 Mark successful local target artifacts `browser-verified` and explicitly not `OutSystems-verified`, and verify the evidence validator refuses the higher status without a named tenant/platform smoke result.
+- [x] 7.7 Generate machine-readable gate and compatibility reports from measured schema, test, browser, accessibility, visual, CSP, dependency, size, reproducibility, and leak results, and verify failures include the policy version, gate, threshold, and measured value.
+- [x] 7.8 Mark successful local target artifacts `browser-verified` and explicitly not `OutSystems-verified`, and verify the evidence validator refuses the higher status without a named tenant/platform smoke result.
 
 ## 8. Wire the integration and release workflow
 
-- [ ] 8.1 Add continuous integration for clean install, formatting, lint, type checking, unit tests, contract fixtures, target builds, artifact checks, browser matrices, policy gates, and evidence generation, and verify a representative CI-equivalent local run succeeds from a clean checkout.
-- [ ] 8.2 Add a command-palette release command that validates the requested version, builds both targets, runs all applicable gates, writes checksums/evidence, and appends the local catalog only on success; verify a forced gate failure leaves no registered release.
-- [ ] 8.3 Run the release twice from clean workspaces and verify unsigned files are byte-identical, package contracts match across targets, unrelated component code is absent, and all checksums and evidence references resolve.
-- [ ] 8.4 Run `npm run verify` as the single final local acceptance command and verify it produces complete browser-verified ODC and OS11 command-palette packages while making no tenant, OML, publication, or OutSystems-verified claim.
-- [ ] 8.5 Update the root release and contribution documentation with the verified commands, artifact paths, support boundaries, known deferred tenant checks, and the path for proposing future components such as a Gantt timeline; verify a new contributor can follow the documented flow using only repository inputs.
+- [x] 8.1 Add continuous integration for clean install, formatting, lint, type checking, unit tests, contract fixtures, target builds, artifact checks, browser matrices, policy gates, and evidence generation, and verify a representative CI-equivalent local run succeeds from a clean checkout.
+- [x] 8.2 Add a command-palette release command that validates the requested version, builds both targets, runs all applicable gates, writes checksums/evidence, and appends the local catalog only on success; verify a forced gate failure leaves no registered release.
+- [x] 8.3 Run the release twice from clean workspaces and verify unsigned files are byte-identical, package contracts match across targets, unrelated component code is absent, and all checksums and evidence references resolve.
+- [x] 8.4 Run `npm run verify` as the single final local acceptance command and verify it produces complete browser-verified ODC and OS11 command-palette packages while making no tenant, OML, publication, or OutSystems-verified claim.
+- [x] 8.5 Update the root release and contribution documentation with the verified commands, artifact paths, support boundaries, known deferred tenant checks, and the path for proposing future components such as a Gantt timeline; verify a new contributor can follow the documented flow using only repository inputs.

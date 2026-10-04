@@ -1,0 +1,401 @@
+[
+  {
+    "componentId": "command-palette",
+    "manifest": {
+      "assets": [],
+      "capabilities": {
+        "browserApis": [
+          "Document",
+          "HTMLElement",
+          "KeyboardEvent",
+          "String.normalize",
+          "Element.scrollIntoView",
+          "Element.replaceChildren",
+          "HTMLElement.focus",
+          "HTMLElement.inert",
+          "Navigator.platform"
+        ],
+        "fonts": [],
+        "globalStyles": [],
+        "keyframes": [],
+        "networkOrigins": [],
+        "portals": [],
+        "workers": []
+      },
+      "commands": {
+        "close": {
+          "arguments": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {},
+            "type": "object"
+          },
+          "execution": "sync",
+          "result": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "isOpen": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "isOpen"
+            ],
+            "type": "object"
+          }
+        },
+        "open": {
+          "arguments": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {},
+            "type": "object"
+          },
+          "execution": "sync",
+          "result": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "isOpen": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "isOpen"
+            ],
+            "type": "object"
+          }
+        },
+        "toggle": {
+          "arguments": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {},
+            "type": "object"
+          },
+          "execution": "sync",
+          "result": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "isOpen": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "isOpen"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "componentId": "command-palette",
+      "contractVersion": "1.0",
+      "dependencies": [],
+      "entry": "src/index.ts",
+      "events": {
+        "closed": {
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "instanceId": {
+                "type": "string"
+              },
+              "reason": {
+                "enum": [
+                  "host",
+                  "escape",
+                  "selection",
+                  "shortcut",
+                  "button"
+                ]
+              }
+            },
+            "required": [
+              "instanceId",
+              "reason"
+            ],
+            "type": "object"
+          }
+        },
+        "commandSelected": {
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "commandId": {
+                "type": "string"
+              },
+              "instanceId": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "keyboard",
+                  "pointer"
+                ]
+              }
+            },
+            "required": [
+              "instanceId",
+              "commandId",
+              "query",
+              "source"
+            ],
+            "type": "object"
+          }
+        },
+        "error": {
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "instanceId": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "instanceId",
+              "code",
+              "message"
+            ],
+            "type": "object"
+          }
+        },
+        "opened": {
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "instanceId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "instanceId"
+            ],
+            "type": "object"
+          }
+        },
+        "queryChanged": {
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "instanceId": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              },
+              "resultCount": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "instanceId",
+              "query",
+              "resultCount"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "properties": {
+        "closeOnSelect": {
+          "access": "readwrite",
+          "default": true,
+          "required": false,
+          "schema": {
+            "default": true,
+            "type": "boolean"
+          },
+          "updateMode": "live"
+        },
+        "commands": {
+          "access": "readwrite",
+          "required": true,
+          "schema": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "disabled": {
+                  "type": "boolean"
+                },
+                "group": {
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "keywords": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "label": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "metadata": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hint": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "updateMode": "live"
+        },
+        "emptyMessage": {
+          "access": "readwrite",
+          "default": "No commands found.",
+          "required": false,
+          "schema": {
+            "default": "No commands found.",
+            "type": "string"
+          },
+          "updateMode": "live"
+        },
+        "placeholder": {
+          "access": "readwrite",
+          "default": "Search commands…",
+          "required": false,
+          "schema": {
+            "default": "Search commands…",
+            "type": "string"
+          },
+          "updateMode": "live"
+        },
+        "shortcut": {
+          "access": "readwrite",
+          "default": "",
+          "required": false,
+          "schema": {
+            "default": "",
+            "pattern": "^(?:|(?:(?:[Mm][Oo][Dd]|[Cc][Tt][Rr][Ll]|[Cc][Oo][Nn][Tt][Rr][Oo][Ll]|[Mm][Ee][Tt][Aa]|[Aa][Ll][Tt]|[Ss][Hh][Ii][Ff][Tt])\\+)+[A-Za-z0-9])$",
+            "type": "string"
+          },
+          "updateMode": "live"
+        },
+        "title": {
+          "access": "readwrite",
+          "default": "Command palette",
+          "required": false,
+          "schema": {
+            "default": "Command palette",
+            "minLength": 1,
+            "type": "string"
+          },
+          "updateMode": "live"
+        }
+      },
+      "schemaVersion": "1.0",
+      "styles": [
+        "src/styles.css"
+      ],
+      "targets": [
+        "odc",
+        "o11-reactive"
+      ],
+      "themeTokens": {
+        "--osai-command-palette-accent": {
+          "default": "#185cc7",
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-active-background": {
+          "default": "#edf3ff",
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-background": {
+          "default": "#ffffff",
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-border": {
+          "default": "#d6dce5",
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-muted": {
+          "default": "#596474",
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-overlay": {
+          "default": "rgb(18 26 40 / 48%)",
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-radius": {
+          "default": "16px",
+          "schema": {
+            "pattern": "^[0-9]+(?:\\.[0-9]+)?(?:px|rem|em)$",
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-text": {
+          "default": "#19202b",
+          "schema": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-width": {
+          "default": "640px",
+          "schema": {
+            "pattern": "^[0-9]+(?:\\.[0-9]+)?(?:px|rem|em|vw|%)$",
+            "type": "string"
+          }
+        },
+        "--osai-command-palette-z-index": {
+          "default": "1000",
+          "schema": {
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          }
+        }
+      },
+      "version": "1.0.0"
+    },
+    "payloadDigest": "7dd31202fce23dfe14ea1fa258ebcadd39a06b753f37fcc7b56504e3238583b6",
+    "version": "1.0.0"
+  }
+]
+
