@@ -44,205 +44,217 @@ const cleanup = (page: Page) =>
     };
   });
 for (const id of certification.inventory) {
-  test(id, async ({ page, browser, request }, info) => {
-    test.setTimeout(90000);
-    const target = String(info.project.metadata.target);
-    const query = new URLSearchParams({ component: selected!.manifest.componentId, target });
-    await page.goto(`/preview?${query}`);
-    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
-    const metadata = (await page.evaluate(() => window.previewMetadata)) as PreviewMetadata;
-    let measurement: unknown;
-    let passed = false;
-    try {
-      if (id.startsWith('component/')) {
-        const scenario = certification.descriptor.scenarios.find(
-          (scenario) => `component/${scenario.id}` === id,
-        )!;
-        measurement = await page.evaluate(
-          ({ name, preserve }) => window.preview.run(name, preserve),
-          { name: scenario.id, preserve: scenario.kind === 'visual' },
-        );
-        if (scenario.kind === 'visual')
-          await expect(page).toHaveScreenshot(
-            `${metadata.manifest.componentId}-${scenario.id}.png`,
-          );
-      } else if (id === 'platform/lifecycle') {
-        await create(page);
-        const result = await page.evaluate(() => {
-          const { driver, api } = window.preview;
-          const config = window.previewMetadata.certification.descriptor.validConfiguration;
-          driver.update(config);
-          driver.dispose();
-          driver.dispose();
-          driver.create(config);
-          return JSON.parse(api.getInfo()).value.instances;
-        });
-        expect(result).toBe(1);
-      } else if (id === 'platform/isolation') {
-        await create(page);
-        const result = await page.evaluate(() => {
-          const driver = window.preview.driver;
-          const config = window.previewMetadata.certification.descriptor.validConfiguration;
-          const sibling = driver.sibling(config);
-          const before = sibling.root.innerHTML;
-          driver.update(config);
-          driver.dispose();
-          const same = sibling.root.innerHTML === before;
-          sibling.dispose();
-          return same;
-        });
-        expect(result).toBe(true);
-      } else if (id === 'platform/contract') {
-        await create(page);
-        const result = await page.evaluate(() => {
-          const { api, driver } = window.preview;
-          const before = driver.root.innerHTML;
-          const results = window.previewMetadata.certification.descriptor.invalidConfigurations.map(
-            (config) => JSON.parse(api.update('preview', JSON.stringify(config))).ok,
-          );
-          results.push(JSON.parse(api.invoke('preview', 'unlisted', '{}')).ok);
-          results.push(JSON.parse(api.update('preview', '{')).ok);
-          return { results, preserved: driver.root.innerHTML === before };
-        });
-        expect(result.results.every((ok) => ok === false)).toBe(true);
-        expect(result.preserved).toBe(true);
-      } else if (id === 'platform/accessibility') {
-        await create(page);
-        await page.evaluate(async () => {
-          const scenario = window.previewMetadata.certification.descriptor.scenarios.find(
-            (item) => item.kind === 'accessibility',
+  test(
+    id,
+    {
+      tag: certification.descriptor.scenarios.some(
+        (scenario) => `component/${scenario.id}` === id && scenario.kind === 'visual',
+      )
+        ? '@visual'
+        : [],
+    },
+    async ({ page, browser, request }, info) => {
+      test.setTimeout(90000);
+      const target = String(info.project.metadata.target);
+      const query = new URLSearchParams({ component: selected!.manifest.componentId, target });
+      await page.goto(`/preview?${query}`);
+      await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+      const metadata = (await page.evaluate(() => window.previewMetadata)) as PreviewMetadata;
+      let measurement: unknown;
+      let passed = false;
+      try {
+        if (id.startsWith('component/')) {
+          const scenario = certification.descriptor.scenarios.find(
+            (scenario) => `component/${scenario.id}` === id,
           )!;
-          await window.componentScenarios[scenario.id]!(window.preview.driver);
-        });
-        const componentObservations = await page.evaluate(() => window.observations.snapshot());
-        const audit = await new AxeBuilder({ page })
-          .withTags(policy.accessibility.axeTags)
-          .analyze();
-        expect(audit.violations).toEqual([]);
-        await page.keyboard.press('Tab');
-        await page.keyboard.press('Escape');
-        await page.setViewportSize({ width: 320, height: 720 });
-        await page.emulateMedia({ reducedMotion: 'reduce' });
-        await page.evaluate(() => {
-          document.documentElement.dir = 'rtl';
-          document.documentElement.style.zoom = '2';
-        });
-        expect(await page.locator('main').count()).toBe(1);
-        measurement = { violations: audit.violations.length, componentObservations };
-      } else if (id === 'platform/security') {
-        await create(page);
-        const response = await request.get(`/preview?${query}`);
-        expect(response.headers()['content-security-policy']).not.toContain('unsafe-');
-        const observed = await page.evaluate(() => window.observations.snapshot());
-        validateObservations(
-          metadata.manifest,
-          {
-            workers: observed.workerUrls,
-            origins: observed.origins,
-            portals: observed.portalSelectors,
-            apis: observed.apis,
-          },
-          Object.fromEntries(
-            metadata.resources.registration.assets.map((asset) => [
-              asset.id,
-              new URL(metadata.assetBase + asset.id, page.url()).href,
-            ]),
-          ),
-        );
-        expect((await request.get(`${metadata.assetBase}not-registered.js`)).status()).toBe(404);
-        expect((await request.get('/package.json')).status()).toBe(404);
-        measurement = { observed };
-      } else if (id === 'platform/cleanup') {
-        measurement = await page.evaluate(async (cycles) => {
-          const { driver, api } = window.preview;
-          const configuration = window.previewMetadata.certification.descriptor.validConfiguration;
-          for (let cycle = 0; cycle < cycles; cycle++) {
-            driver.create(configuration);
-            const host = driver.root.parentElement!;
-            host.hidden = cycle % 2 === 0;
-            host.style.width = `${320 + cycle}px`;
-            driver.update(configuration);
-            if (cycle % 3 === 0) host.remove();
+          measurement = await page.evaluate(
+            ({ name, preserve }) => window.preview.run(name, preserve),
+            { name: scenario.id, preserve: scenario.kind === 'visual' },
+          );
+          if (scenario.kind === 'visual')
+            await expect(page).toHaveScreenshot(
+              `${metadata.manifest.componentId}-${scenario.id}.png`,
+            );
+        } else if (id === 'platform/lifecycle') {
+          await create(page);
+          const result = await page.evaluate(() => {
+            const { driver, api } = window.preview;
+            const config = window.previewMetadata.certification.descriptor.validConfiguration;
+            driver.update(config);
             driver.dispose();
-          }
-          await window.observations.delay(70);
-          return {
-            cycles,
-            snapshot: JSON.parse(api.getInfo()).value,
-            observed: window.observations.snapshot(),
-          };
-        }, certification.profile.benchmark.lifecycleCycles);
-        const result = await cleanup(page);
-        for (const key of resourceKeys) expect(result.after[key], key).toBe(0);
-        expect(result.after.effects).toBe(result.before.effects);
-        expect(result.managed.instances).toBe(0);
-        expect(Object.values(result.managed.resources).every((value) => value === 0)).toBe(true);
-      } else if (id === 'platform/negative-listener') {
-        const result = await page.evaluate(() => {
-          let effects = 0;
-          const listener = () => effects++;
-          document.addEventListener('raw-listener-probe', listener);
-          window.preview.reset();
-          const managed = JSON.parse(window.preview.api.getInfo()).value;
-          document.dispatchEvent(new Event('raw-listener-probe'));
-          const observed = window.observations.snapshot();
-          document.removeEventListener('raw-listener-probe', listener);
-          return { effects, managed, observed };
+            driver.dispose();
+            driver.create(config);
+            return JSON.parse(api.getInfo()).value.instances;
+          });
+          expect(result).toBe(1);
+        } else if (id === 'platform/isolation') {
+          await create(page);
+          const result = await page.evaluate(() => {
+            const driver = window.preview.driver;
+            const config = window.previewMetadata.certification.descriptor.validConfiguration;
+            const sibling = driver.sibling(config);
+            const before = sibling.root.innerHTML;
+            driver.update(config);
+            driver.dispose();
+            const same = sibling.root.innerHTML === before;
+            sibling.dispose();
+            return same;
+          });
+          expect(result).toBe(true);
+        } else if (id === 'platform/contract') {
+          await create(page);
+          const result = await page.evaluate(() => {
+            const { api, driver } = window.preview;
+            const before = driver.root.innerHTML;
+            const results =
+              window.previewMetadata.certification.descriptor.invalidConfigurations.map(
+                (config) => JSON.parse(api.update('preview', JSON.stringify(config))).ok,
+              );
+            results.push(JSON.parse(api.invoke('preview', 'unlisted', '{}')).ok);
+            results.push(JSON.parse(api.update('preview', '{')).ok);
+            return { results, preserved: driver.root.innerHTML === before };
+          });
+          expect(result.results.every((ok) => ok === false)).toBe(true);
+          expect(result.preserved).toBe(true);
+        } else if (id === 'platform/accessibility') {
+          await create(page);
+          await page.evaluate(async () => {
+            const scenario = window.previewMetadata.certification.descriptor.scenarios.find(
+              (item) => item.kind === 'accessibility',
+            )!;
+            await window.componentScenarios[scenario.id]!(window.preview.driver);
+          });
+          const componentObservations = await page.evaluate(() => window.observations.snapshot());
+          const audit = await new AxeBuilder({ page })
+            .withTags(policy.accessibility.axeTags)
+            .analyze();
+          expect(audit.violations).toEqual([]);
+          await page.keyboard.press('Tab');
+          await page.keyboard.press('Escape');
+          await page.setViewportSize({ width: 320, height: 720 });
+          await page.emulateMedia({ reducedMotion: 'reduce' });
+          await page.evaluate(() => {
+            document.documentElement.dir = 'rtl';
+            document.documentElement.style.zoom = '2';
+          });
+          expect(await page.locator('main').count()).toBe(1);
+          measurement = { violations: audit.violations.length, componentObservations };
+        } else if (id === 'platform/security') {
+          await create(page);
+          const response = await request.get(`/preview?${query}`);
+          expect(response.headers()['content-security-policy']).not.toContain('unsafe-');
+          const observed = await page.evaluate(() => window.observations.snapshot());
+          validateObservations(
+            metadata.manifest,
+            {
+              workers: observed.workerUrls,
+              origins: observed.origins,
+              portals: observed.portalSelectors,
+              apis: observed.apis,
+            },
+            Object.fromEntries(
+              metadata.resources.registration.assets.map((asset) => [
+                asset.id,
+                new URL(metadata.assetBase + asset.id, page.url()).href,
+              ]),
+            ),
+          );
+          expect((await request.get(`${metadata.assetBase}not-registered.js`)).status()).toBe(404);
+          expect((await request.get('/package.json')).status()).toBe(404);
+          measurement = { observed };
+        } else if (id === 'platform/cleanup') {
+          measurement = await page.evaluate(async (cycles) => {
+            const { driver, api } = window.preview;
+            const configuration =
+              window.previewMetadata.certification.descriptor.validConfiguration;
+            for (let cycle = 0; cycle < cycles; cycle++) {
+              driver.create(configuration);
+              const host = driver.root.parentElement!;
+              host.hidden = cycle % 2 === 0;
+              host.style.width = `${320 + cycle}px`;
+              driver.update(configuration);
+              if (cycle % 3 === 0) host.remove();
+              driver.dispose();
+            }
+            await window.observations.delay(70);
+            return {
+              cycles,
+              snapshot: JSON.parse(api.getInfo()).value,
+              observed: window.observations.snapshot(),
+            };
+          }, certification.profile.benchmark.lifecycleCycles);
+          const result = await cleanup(page);
+          for (const key of resourceKeys) expect(result.after[key], key).toBe(0);
+          expect(result.after.effects).toBe(result.before.effects);
+          expect(result.managed.instances).toBe(0);
+          expect(Object.values(result.managed.resources).every((value) => value === 0)).toBe(true);
+        } else if (id === 'platform/negative-listener') {
+          const result = await page.evaluate(() => {
+            let effects = 0;
+            const listener = () => effects++;
+            document.addEventListener('raw-listener-probe', listener);
+            window.preview.reset();
+            const managed = JSON.parse(window.preview.api.getInfo()).value;
+            document.dispatchEvent(new Event('raw-listener-probe'));
+            const observed = window.observations.snapshot();
+            document.removeEventListener('raw-listener-probe', listener);
+            return { effects, managed, observed };
+          });
+          expect(Object.values(result.managed.resources).every((value) => value === 0)).toBe(true);
+          expect(result.effects).toBe(1);
+          expect(result.observed.listeners).toBeGreaterThan(0);
+          measurement = { rejected: true };
+        } else if (id === 'platform/negative-performance') {
+          await create(page);
+          const result = await page.evaluate(() => window.preview.measureSlowInput());
+          measurement = result;
+          expect(result.rejected).toBe(true);
+          expect(result.measuredMs).toBeGreaterThan(certification.profile.benchmark.input.worstMs);
+        } else if (id === 'platform/benchmark') {
+          measurement = await benchmark(page, info);
+        } else {
+          const scenario = certification.descriptor.scenarios.find(
+            (item) => item.kind === 'capability' && `platform/${item.member}` === id,
+          )!;
+          measurement = await page.evaluate((name) => window.preview.run(name), scenario.id);
+          const observed = await page.evaluate(() => window.observations.snapshot());
+          if (id === 'platform/worker-lifecycle')
+            expect(observed.workerUrls.length).toBeGreaterThan(0);
+          if (id === 'platform/portal-lifecycle')
+            expect(observed.portalSelectors.length).toBeGreaterThan(0);
+        }
+        passed = true;
+      } finally {
+        const after = await cleanup(page);
+        await info.attach('scenario-evidence', {
+          contentType: 'application/json',
+          body: Buffer.from(
+            JSON.stringify({
+              schemaVersion: '2.0',
+              scenarioId: id,
+              componentId: metadata.manifest.componentId,
+              version: metadata.manifest.version,
+              target,
+              browser: info.project.use.browserName,
+              browserVersion: browser.version(),
+              suiteVersion: SUITE_VERSION,
+              contractHash: metadata.certification.contractHash,
+              profileHash: metadata.certification.profileHash,
+              descriptorHash: metadata.certification.descriptorHash,
+              suiteHash: metadata.certification.suiteHash,
+              policyHash: metadata.policyHash,
+              artifactChecksums: metadata.artifactChecksums,
+              passed,
+              measurement,
+              afterCleanup: after,
+            }),
+          ),
         });
-        expect(Object.values(result.managed.resources).every((value) => value === 0)).toBe(true);
-        expect(result.effects).toBe(1);
-        expect(result.observed.listeners).toBeGreaterThan(0);
-        measurement = { rejected: true };
-      } else if (id === 'platform/negative-performance') {
-        await create(page);
-        const result = await page.evaluate(() => window.preview.measureSlowInput());
-        measurement = result;
-        expect(result.rejected).toBe(true);
-        expect(result.measuredMs).toBeGreaterThan(certification.profile.benchmark.input.worstMs);
-      } else if (id === 'platform/benchmark') {
-        measurement = await benchmark(page, info);
-      } else {
-        const scenario = certification.descriptor.scenarios.find(
-          (item) => item.kind === 'capability' && `platform/${item.member}` === id,
-        )!;
-        measurement = await page.evaluate((name) => window.preview.run(name), scenario.id);
-        const observed = await page.evaluate(() => window.observations.snapshot());
-        if (id === 'platform/worker-lifecycle')
-          expect(observed.workerUrls.length).toBeGreaterThan(0);
-        if (id === 'platform/portal-lifecycle')
-          expect(observed.portalSelectors.length).toBeGreaterThan(0);
+        if (id !== 'platform/accessibility')
+          for (const key of resourceKeys) expect(after.after[key], key).toBe(0);
       }
-      passed = true;
-    } finally {
-      const after = await cleanup(page);
-      await info.attach('scenario-evidence', {
-        contentType: 'application/json',
-        body: Buffer.from(
-          JSON.stringify({
-            schemaVersion: '2.0',
-            scenarioId: id,
-            componentId: metadata.manifest.componentId,
-            version: metadata.manifest.version,
-            target,
-            browser: info.project.use.browserName,
-            browserVersion: browser.version(),
-            suiteVersion: SUITE_VERSION,
-            contractHash: metadata.certification.contractHash,
-            profileHash: metadata.certification.profileHash,
-            descriptorHash: metadata.certification.descriptorHash,
-            suiteHash: metadata.certification.suiteHash,
-            policyHash: metadata.policyHash,
-            artifactChecksums: metadata.artifactChecksums,
-            passed,
-            measurement,
-            afterCleanup: after,
-          }),
-        ),
-      });
-      if (id !== 'platform/accessibility')
-        for (const key of resourceKeys) expect(after.after[key], key).toBe(0);
-    }
-  });
+    },
+  );
 }
 
 async function benchmark(page: Page, info: TestInfo) {

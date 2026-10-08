@@ -186,7 +186,7 @@ test('serves only selected graph paths and refuses traversal or absent releases'
 });
 
 for (const view of ['library', 'workspace', 'activity'])
-  test(`workbench visual: ${view}`, async ({ page }) => {
+  test(`workbench visual: ${view}`, { tag: '@visual' }, async ({ page }) => {
     // Fix only the readiness state for layout snapshots. A mask still changes size
     // with the real evidence label; readiness semantics have separate gate tests.
     await page.route('**/metadata?*', async (route) => {

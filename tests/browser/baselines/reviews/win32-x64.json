@@ -1,0 +1,392 @@
+{
+  "host": "win32-x64",
+  "reviewer": "Inherited repository reviews; corpus integrity recorded by Codex",
+  "reviewDate": "2026-10-06",
+  "findings": "Preserved all 96 existing Windows references byte for byte. Original 60 palette states retained from the registered repository; 36 shared/workbench references retain tests/workflows/visual-review-v1.json and docs/hardening-completion.md review history. This is an integrity migration, not a new Windows execution or visual review.",
+  "files": [
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/closed.png",
+      "sha256": "6dc3f58e536b2ada2ed7e3c3a58957036c0dd98970a9ff436fec2aee08a580b0"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/command-palette-default.png",
+      "sha256": "becb3f82ac4852744b19b452473189964e5345a2a01b064763c54f0723ef6253"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/disabled.png",
+      "sha256": "20b6d3f3a0429d950ee86c826867eb8f0b41e0e7f99af5577fdd9de483fd3e66"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/empty.png",
+      "sha256": "88581a3e41b89c8f775567b0d06d7a3f92b436e90cda2910ca2c58d00e3f546e"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/grouped.png",
+      "sha256": "61fcb10774e09f7ae7e2fa8c43a18bf8f8a41889a7cf5a4375237b237c3fb90f"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/minimal-default.png",
+      "sha256": "65993994e254cc71ce09ef8f21049f062a77191002b62dd9a9e8e9c2673daedd"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/narrow.png",
+      "sha256": "e37ed038dd6f6adf0dc8f5dea46fc126c478c5d2a639fafb697b2536d2c9efe3"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/open.png",
+      "sha256": "61fcb10774e09f7ae7e2fa8c43a18bf8f8a41889a7cf5a4375237b237c3fb90f"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/query.png",
+      "sha256": "1880012c284db27a14d1441f0c023ca1d9430171b5c6a481515f4477cc0523d8"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/reduced-motion.png",
+      "sha256": "61fcb10774e09f7ae7e2fa8c43a18bf8f8a41889a7cf5a4375237b237c3fb90f"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/resources-default.png",
+      "sha256": "c40e7d8354dcf83c50d93221a77b3af16ea5d5d97974b42456c4d67ef91b8690"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/rtl.png",
+      "sha256": "4966e0b0be0bfca42ca5f08f7562388d9fe4f0a1d8ab0a1a9fde704bdffa186b"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/workbench-activity.png",
+      "sha256": "615c0e662c2b9f76d5386f0dd8adf5d4f682a68d4c932be219a9d56514379a67"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/workbench-library.png",
+      "sha256": "084e25a3047fd7c8a0b87a62dce465a07aac3eed12763b5dee361e64d9e16d38"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/workbench-workspace.png",
+      "sha256": "02c83f7ccbb0f9ca6fc0be0a3c9a67e61fd6668449936ee20e9cb43e6b471267"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-chromium/zoomed.png",
+      "sha256": "9fb73708d9cc247bd0b86891e64d185148e43c5eeca9a1d67b81a170bb9b2fb0"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/closed.png",
+      "sha256": "562fce457baf91bc70fd1b34387e28fd95d8f4d54ad185ab6ddcc491048797fc"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/command-palette-default.png",
+      "sha256": "eac8a5f1c5ecf06c8d1ed0ba0f408fbc4dbef76a930f1b6c5c9b033f3c7fee43"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/disabled.png",
+      "sha256": "7dd2c719bb3dbd1db63ad74324dc793ca1ac67966b997bae5e87a99cbbcbd3a9"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/empty.png",
+      "sha256": "663f0a80cb5e4ac9db2d6d78c9d02cca7b12c3288a2d67acab2beeb77fc3fad3"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/grouped.png",
+      "sha256": "3d815b9929a7cadbd3588c3d233f554fccda9cd73ec12565b988a12911420278"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/minimal-default.png",
+      "sha256": "4e07e6d46ac4d5ff25a62587b763fa6c1a5aae98c6a81b5d814fe8d57fc47cdd"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/narrow.png",
+      "sha256": "592d6280360750c8971af0b23b8c72b527cca042a235c3163ba529b3d4f3517a"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/open.png",
+      "sha256": "3d815b9929a7cadbd3588c3d233f554fccda9cd73ec12565b988a12911420278"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/query.png",
+      "sha256": "ae368404c19de9c99bd45e7777f842142d9114a92f392f2380a600fde2fb8f10"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/reduced-motion.png",
+      "sha256": "3d815b9929a7cadbd3588c3d233f554fccda9cd73ec12565b988a12911420278"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/resources-default.png",
+      "sha256": "0aec42d93ba9bbc0bf05816c9cb6ed8289c5630728cdc83c70ff6d108b2ea43c"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/rtl.png",
+      "sha256": "3aa4c1308ad6e9e886a51afa0e5639520df8333aca08bde9f54ecbbff814989a"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/workbench-activity.png",
+      "sha256": "df1a190a6e708e9f705db467f1a7a240ba04e0d6ca74d0a1d6a4390efce8fa67"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/workbench-library.png",
+      "sha256": "a3d86b5834592759ade576cf42c850ab460d4ea4c985059ff36945b0adc64b63"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/workbench-workspace.png",
+      "sha256": "747706a8997a3486dac0b1a80856f2a23b3f1281c9590dc5ad3682900fde3169"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-firefox/zoomed.png",
+      "sha256": "c44a7e7ea26f34b83d031f8adab39ba05ebe7a25366aa7dffa0edd6c837ea2d8"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/closed.png",
+      "sha256": "76133f5618f48a890a1e71c8e869e08b3822891bb70cf6b0eb45427a440b28f5"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/command-palette-default.png",
+      "sha256": "0376356af5354b98cb50ca6097c8c6011157cac458177a27ba5510eb2beab2ff"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/disabled.png",
+      "sha256": "9456825c0cc30d1ea5e1f2799aa8f5763a20aa353320985b22ca5e4a37c2f157"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/empty.png",
+      "sha256": "a197eded272b3823f4bc294e00b4ef3140c3cf45ce3c29e73955bed15563c5ee"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/grouped.png",
+      "sha256": "c6c3a35e0c48e0541c97e857dcb62b427d3eef1ff626da0b56e0cfbdbf70bf18"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/minimal-default.png",
+      "sha256": "42b01f9962da891a1aee12aff80c1cc3b0d3cf69ec29169a20a5901459bfb878"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/narrow.png",
+      "sha256": "e29208982c39267c4cd38497309de3e050629f148d5e8c39cfa2cae7b89b4840"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/open.png",
+      "sha256": "c6c3a35e0c48e0541c97e857dcb62b427d3eef1ff626da0b56e0cfbdbf70bf18"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/query.png",
+      "sha256": "8bc75072159e3a44c4ae22ca3c2cd63792f28fb593b8f50fc1c70cb31077b7a9"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/reduced-motion.png",
+      "sha256": "c6c3a35e0c48e0541c97e857dcb62b427d3eef1ff626da0b56e0cfbdbf70bf18"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/resources-default.png",
+      "sha256": "7cb47aae6ce27a471a478b2a451915fbba95a7808bf6933ec192bdb3c5d24165"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/rtl.png",
+      "sha256": "beddbdc4067e7d8f4bc34504d38f168fd9b59ef20a6152297d5e6f078392ba68"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/workbench-activity.png",
+      "sha256": "55a49980e345781812a348e8061ff4a4b7f4fae68e99e6901d2f329f8b762de6"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/workbench-library.png",
+      "sha256": "51cfca80329737daa4e7bed3db3bcda0ffcbde6532633868e6dc402b70e5d46f"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/workbench-workspace.png",
+      "sha256": "60c77bc37d05663223cf48370a5372503a468149e9b31769a972ca56489017f0"
+    },
+    {
+      "path": "tests/browser/baselines/o11-reactive-webkit/zoomed.png",
+      "sha256": "ccb761b3eb924669e1a03a378ecbf154f5367870a67b96d21b64b33738617e38"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/closed.png",
+      "sha256": "6dc3f58e536b2ada2ed7e3c3a58957036c0dd98970a9ff436fec2aee08a580b0"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/command-palette-default.png",
+      "sha256": "becb3f82ac4852744b19b452473189964e5345a2a01b064763c54f0723ef6253"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/disabled.png",
+      "sha256": "20b6d3f3a0429d950ee86c826867eb8f0b41e0e7f99af5577fdd9de483fd3e66"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/empty.png",
+      "sha256": "88581a3e41b89c8f775567b0d06d7a3f92b436e90cda2910ca2c58d00e3f546e"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/grouped.png",
+      "sha256": "61fcb10774e09f7ae7e2fa8c43a18bf8f8a41889a7cf5a4375237b237c3fb90f"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/minimal-default.png",
+      "sha256": "65993994e254cc71ce09ef8f21049f062a77191002b62dd9a9e8e9c2673daedd"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/narrow.png",
+      "sha256": "e37ed038dd6f6adf0dc8f5dea46fc126c478c5d2a639fafb697b2536d2c9efe3"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/open.png",
+      "sha256": "61fcb10774e09f7ae7e2fa8c43a18bf8f8a41889a7cf5a4375237b237c3fb90f"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/query.png",
+      "sha256": "1880012c284db27a14d1441f0c023ca1d9430171b5c6a481515f4477cc0523d8"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/reduced-motion.png",
+      "sha256": "61fcb10774e09f7ae7e2fa8c43a18bf8f8a41889a7cf5a4375237b237c3fb90f"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/resources-default.png",
+      "sha256": "c40e7d8354dcf83c50d93221a77b3af16ea5d5d97974b42456c4d67ef91b8690"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/rtl.png",
+      "sha256": "4966e0b0be0bfca42ca5f08f7562388d9fe4f0a1d8ab0a1a9fde704bdffa186b"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/workbench-activity.png",
+      "sha256": "615c0e662c2b9f76d5386f0dd8adf5d4f682a68d4c932be219a9d56514379a67"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/workbench-library.png",
+      "sha256": "084e25a3047fd7c8a0b87a62dce465a07aac3eed12763b5dee361e64d9e16d38"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/workbench-workspace.png",
+      "sha256": "02c83f7ccbb0f9ca6fc0be0a3c9a67e61fd6668449936ee20e9cb43e6b471267"
+    },
+    {
+      "path": "tests/browser/baselines/odc-chromium/zoomed.png",
+      "sha256": "9fb73708d9cc247bd0b86891e64d185148e43c5eeca9a1d67b81a170bb9b2fb0"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/closed.png",
+      "sha256": "562fce457baf91bc70fd1b34387e28fd95d8f4d54ad185ab6ddcc491048797fc"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/command-palette-default.png",
+      "sha256": "eac8a5f1c5ecf06c8d1ed0ba0f408fbc4dbef76a930f1b6c5c9b033f3c7fee43"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/disabled.png",
+      "sha256": "7dd2c719bb3dbd1db63ad74324dc793ca1ac67966b997bae5e87a99cbbcbd3a9"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/empty.png",
+      "sha256": "663f0a80cb5e4ac9db2d6d78c9d02cca7b12c3288a2d67acab2beeb77fc3fad3"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/grouped.png",
+      "sha256": "3d815b9929a7cadbd3588c3d233f554fccda9cd73ec12565b988a12911420278"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/minimal-default.png",
+      "sha256": "4e07e6d46ac4d5ff25a62587b763fa6c1a5aae98c6a81b5d814fe8d57fc47cdd"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/narrow.png",
+      "sha256": "592d6280360750c8971af0b23b8c72b527cca042a235c3163ba529b3d4f3517a"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/open.png",
+      "sha256": "217e2e7e87d9551ece706068fe5aae576993e4def1cc098da9be8b0efde934f7"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/query.png",
+      "sha256": "d0a8a6b79e52b1d17782544a10c3d1b808b0c20a7140817b994c1d4b11847e97"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/reduced-motion.png",
+      "sha256": "3d815b9929a7cadbd3588c3d233f554fccda9cd73ec12565b988a12911420278"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/resources-default.png",
+      "sha256": "2252ccf9380e03efbd50629c6ec6974ea7c784c35593d9d3c4b6370b67f92432"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/rtl.png",
+      "sha256": "3aa4c1308ad6e9e886a51afa0e5639520df8333aca08bde9f54ecbbff814989a"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/workbench-activity.png",
+      "sha256": "df1a190a6e708e9f705db467f1a7a240ba04e0d6ca74d0a1d6a4390efce8fa67"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/workbench-library.png",
+      "sha256": "a3d86b5834592759ade576cf42c850ab460d4ea4c985059ff36945b0adc64b63"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/workbench-workspace.png",
+      "sha256": "747706a8997a3486dac0b1a80856f2a23b3f1281c9590dc5ad3682900fde3169"
+    },
+    {
+      "path": "tests/browser/baselines/odc-firefox/zoomed.png",
+      "sha256": "a4b771d53a3d161c6079d8fea705f47171feb4dec5771e45236da8c23527d606"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/closed.png",
+      "sha256": "76133f5618f48a890a1e71c8e869e08b3822891bb70cf6b0eb45427a440b28f5"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/command-palette-default.png",
+      "sha256": "0376356af5354b98cb50ca6097c8c6011157cac458177a27ba5510eb2beab2ff"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/disabled.png",
+      "sha256": "9456825c0cc30d1ea5e1f2799aa8f5763a20aa353320985b22ca5e4a37c2f157"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/empty.png",
+      "sha256": "a197eded272b3823f4bc294e00b4ef3140c3cf45ce3c29e73955bed15563c5ee"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/grouped.png",
+      "sha256": "c6c3a35e0c48e0541c97e857dcb62b427d3eef1ff626da0b56e0cfbdbf70bf18"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/minimal-default.png",
+      "sha256": "42b01f9962da891a1aee12aff80c1cc3b0d3cf69ec29169a20a5901459bfb878"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/narrow.png",
+      "sha256": "e29208982c39267c4cd38497309de3e050629f148d5e8c39cfa2cae7b89b4840"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/open.png",
+      "sha256": "c6c3a35e0c48e0541c97e857dcb62b427d3eef1ff626da0b56e0cfbdbf70bf18"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/query.png",
+      "sha256": "8bc75072159e3a44c4ae22ca3c2cd63792f28fb593b8f50fc1c70cb31077b7a9"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/reduced-motion.png",
+      "sha256": "c6c3a35e0c48e0541c97e857dcb62b427d3eef1ff626da0b56e0cfbdbf70bf18"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/resources-default.png",
+      "sha256": "7cb47aae6ce27a471a478b2a451915fbba95a7808bf6933ec192bdb3c5d24165"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/rtl.png",
+      "sha256": "beddbdc4067e7d8f4bc34504d38f168fd9b59ef20a6152297d5e6f078392ba68"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/workbench-activity.png",
+      "sha256": "55a49980e345781812a348e8061ff4a4b7f4fae68e99e6901d2f329f8b762de6"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/workbench-library.png",
+      "sha256": "51cfca80329737daa4e7bed3db3bcda0ffcbde6532633868e6dc402b70e5d46f"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/workbench-workspace.png",
+      "sha256": "60c77bc37d05663223cf48370a5372503a468149e9b31769a972ca56489017f0"
+    },
+    {
+      "path": "tests/browser/baselines/odc-webkit/zoomed.png",
+      "sha256": "ccb761b3eb924669e1a03a378ecbf154f5367870a67b96d21b64b33738617e38"
+    }
+  ]
+}

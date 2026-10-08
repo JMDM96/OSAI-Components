@@ -5,7 +5,7 @@ import type { JsonSchema, Target } from '@osai/contract-schemas';
 export interface ReleasePolicy {
   schemaVersion: '1.0' | '2.0';
   certification?: {
-    suiteVersion: '2.0.0';
+    suiteVersion: '2.0.0' | '2.1.0';
     evidenceFormat: '2.0';
     independentObservations: true;
     exactScenarios: true;
@@ -93,12 +93,12 @@ export const releasePolicySchema: JsonSchema = {
         ...legacyPolicySchema.properties,
         schemaVersion: { const: '2.0' },
         certification: {
-          const: {
-            suiteVersion: '2.0.0',
+          enum: ['2.0.0', '2.1.0'].map((suiteVersion) => ({
+            suiteVersion,
             evidenceFormat: '2.0',
             independentObservations: true,
             exactScenarios: true,
-          },
+          })),
         },
       },
     },

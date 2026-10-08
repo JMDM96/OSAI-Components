@@ -2,6 +2,8 @@
 
 A TypeScript component SDK and build pipeline for OutSystems Developer Cloud and OutSystems 11 Reactive/Mobile. A single component implementation produces two target-labelled browser asset packages. The command palette is the first reference component.
 
+The command palette also has a published **OS AI Components Demo** in Development. See the [live ODC demo guide](docs/odc-live-demo.md) for the application link, sample inputs, verified behavior and remaining native-verification limits. The [historical preflight](docs/odc-preflight.md) records the local qualification that preceded deployment.
+
 ## Setup
 
 Use Node **26.3.1** and npm **11.16.0**. The exact versions are recorded in `.node-version` and `package.json`. From the repository root:
@@ -35,14 +37,14 @@ npm run inspect
 npm run reproduce
 ```
 
-Browser tests cover both target packages in Chromium, Firefox, and WebKit. Visual references are checked in under `tests/browser/baselines`. They are generated and compared on Windows with the pinned browser builds. To intentionally review a UI change, run `npm run test:visual:update`, inspect the changed images, and then run the ordinary tests again.
+Browser tests cover both target packages in Chromium, Firefox, and WebKit on Windows x64 and macOS arm64. Windows references keep their original paths under `tests/browser/baselines`; Mac references use its `darwin-arm64` subtree. Ordinary runs never write references or fall back to another host. See [visual review and qualification](docs/certification.md#visual-hosts-and-reviewed-references) for collection, review and fixture/workbench commands. Execution host details stay in reports; both reference sets and reviewed hashes bind the deterministic package provenance.
 
 `npm run verify` checks formatting, lint, types, unit/conformance tests, packaged artifacts, browsers, accessibility, lifecycle resources, size, security policy, and clean-workspace reproducibility. It writes measured reports and only then grants `browser-verified` status. `npm run reproduce` independently installs and builds two fresh workspace copies from the lockfile and compares their unsigned payloads.
 
 ## Consume the output
 
 ```text
-dist/command-palette/1.0.0/
+dist/command-palette/2.0.0/
   odc/             Browser script, CSS, schemas, adapter, integration guide
   o11-reactive/    Same public contract, separate target metadata
   shared/          Types, dependency inventory, licenses, checksums
@@ -62,7 +64,7 @@ The package layers are `contract-schemas`, `component-sdk`, `runtime-bridge`, `a
 ## Release and support evidence
 
 ```powershell
-npm run release -- 1.0.0
+npm run release -- 2.0.0
 ```
 
 The release command runs all verification before registering an immutable internal version in `releases/catalog.json`. It does not publish a package or change any OutSystems tenant. Release and compatibility rules are in [distribution](docs/distribution.md) and [releasing](docs/releasing.md).

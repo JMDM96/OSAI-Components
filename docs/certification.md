@@ -61,3 +61,59 @@ slow reports and leaks fail; candidate runs do not calibrate acceptance threshol
 All local outcomes are browser-only. Actual OutSystems host and mobile-webview
 evidence is separate, release-bound and lane-specific; see
 [the unexecuted native checkpoint](native-integration.md).
+
+## Visual hosts and reviewed references
+
+Suite and policy 2.1.0 support exactly `win32-x64` and `darwin-arm64`. The resolver
+uses the actual process host; there is no override or cross-host fallback. Windows
+keeps `tests/browser/baselines/<target>-<browser>/`; Mac uses
+`tests/browser/baselines/darwin-arm64/<target>-<browser>/`. An unsupported host,
+missing reference or stale review fails. Ordinary qualification sets snapshot
+updates to `none`. Zero differing pixels and the existing comparison threshold
+remain unchanged.
+
+Before another run, copy failed `test-results/<component>/` to a distinct retained
+run directory. Install the pinned browsers and build all selected packages first:
+
+```sh
+npm run build -- --all --fixture tests/fixtures/minimal/component.manifest.json --fixture tests/fixtures/resources/component.manifest.json
+npm run test:visual:update
+OSAI_COMPONENT=minimal OSAI_FIXTURE_MANIFESTS='["tests/fixtures/minimal/component.manifest.json"]' npm run test:visual:update
+OSAI_COMPONENT=resources OSAI_FIXTURE_MANIFESTS='["tests/fixtures/resources/component.manifest.json"]' npm run test:visual:update
+OSAI_WORKBENCH=true OSAI_COMPONENT=resources OSAI_FIXTURE_MANIFESTS='["tests/fixtures/minimal/component.manifest.json","tests/fixtures/resources/component.manifest.json"]' npm run test:visual:update
+```
+
+These examples use a POSIX shell. In PowerShell set each variable using
+`$env:OSAI_COMPONENT = 'minimal'` (and likewise for the others), run the command,
+then remove it with `Remove-Item Env:OSAI_COMPONENT`. Clear component, fixture and
+workbench selectors between unrelated runs. `CI=true` and an unused
+`OSAI_HARNESS_PORT` give a run its own preview server.
+
+Collection selects every `@visual` test, including descriptor visual scenarios
+whose titles are `component/default`, the palette states, and the separately
+selected workbench. It accepts no CLI overrides. Reports are retained under
+`test-results/reference-collection/<host>/<selection>/` and explicitly identify
+collection; they are never qualification evidence. Inspect every new/changed PNG
+for intended content, clipping, focus, responsive layout and browser differences.
+Record the date, reviewer, conclusions and sorted `{path, sha256}` entries in
+`tests/browser/baselines/reviews/<host>.json`. Never bless images merely because the
+collection command exited successfully. Existing Windows review history is retained.
+
+Then format/regenerate, rebuild, and qualify normally, sequentially:
+
+```sh
+npm run format
+npm run bindings
+npm run verify -- --component command-palette
+npm run verify -- --component minimal --fixture tests/fixtures/minimal/component.manifest.json
+npm run verify -- --component resources --fixture tests/fixtures/resources/component.manifest.json
+OSAI_WORKBENCH=true OSAI_COMPONENT=resources OSAI_FIXTURE_MANIFESTS='["tests/fixtures/minimal/component.manifest.json","tests/fixtures/resources/component.manifest.json"]' npm run test:browser
+```
+
+The suite digest includes both supported image sets, their review files and host
+selection rules on every build host. OS release/version, architecture, reference
+set, complete baseline digest and pinned browser versions/revisions are recorded
+in each browser report. Evidence collection and readiness validate the recorded
+host without substituting the inspecting machine. Editing images or reviews
+invalidates prior evidence for new outputs. Keep historical packages intact;
+a Mac run does not certify Windows or a native OutSystems host.

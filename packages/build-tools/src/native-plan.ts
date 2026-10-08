@@ -272,6 +272,8 @@ export function reconciliation(
   };
 }
 export interface IntegrationCapabilities {
+  officialSkillAvailable: boolean;
+  officialMcpConnected: boolean;
   contextInspection: boolean;
   mentorEditing: boolean;
   staticAssetIngestion: boolean;
@@ -288,6 +290,18 @@ export function integrationProtocol(
   identities: { appKey?: string; envKey?: string },
   authority?: HumanAuthority,
 ) {
+  if (!capabilities.officialSkillAvailable)
+    return {
+      status: 'needs-official-skill',
+      next: 'Install and read the official OutSystems MCP skill before live work; Mentor remains the intended route.',
+      tenantCalls: [],
+    };
+  if (!capabilities.officialMcpConnected)
+    return {
+      status: 'needs-mcp-connection',
+      next: 'Connect the official MCP using the installed skill and client OAuth flow, then inspect the actual callable schemas.',
+      tenantCalls: [],
+    };
   if (!identities.appKey || !identities.envKey)
     return {
       status: 'needs-identities',
@@ -314,7 +328,7 @@ export function integrationProtocol(
     };
   return {
     status: 'ready-for-live-protocol',
-    next: 'Authenticate lazily, inspect current state, reconcile, use actual exposed editing tools, and read back before retrying any partial failure.',
+    next: 'Follow the installed official skill and callable schemas, inspect current state, reconcile using Mentor, and read back before retrying any partial failure.',
     tenantCalls: [],
     publicationAuthorized: authority.publication === true,
     deploymentAuthorized: authority.deployment === true,
@@ -326,7 +340,9 @@ export function redactIntegrationEvidence(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value).map(([key, item]) => [
         key,
-        /(token|secret|password|authorization|callback_url|cookie|credential)/i.test(key)
+        /(token|secret|password|authorization|callback_url|cookie|credential|session.?id|upload.?url)/i.test(
+          key,
+        )
           ? '[redacted]'
           : redactIntegrationEvidence(item),
       ]),
@@ -337,4 +353,34 @@ export function redactIntegrationEvidence(value: unknown): unknown {
       .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted]')
       .replace(/([?&](?:code|state|token|secret|key|password)=)[^&#\s]+/gi, '$1[redacted]');
   return value;
+}
+
+// These observations are supplied by the caller. This model never proves a live connection.
+export function integrationPreflight(observations: {
+  packageValid: boolean;
+  browserQualified: boolean;
+  capabilities: IntegrationCapabilities;
+  identities: { appKey?: string; envKey?: string };
+  nativeSmokeExecuted: boolean;
+}) {
+  return {
+    package: observations.packageValid ? 'valid' : 'pending',
+    certification: observations.browserQualified ? 'browser-verified' : 'pending',
+    officialSkill: observations.capabilities.officialSkillAvailable ? 'available' : 'pending',
+    officialMcp: observations.capabilities.officialMcpConnected ? 'connected' : 'pending',
+    identities:
+      observations.identities.appKey && observations.identities.envKey ? 'resolved' : 'pending',
+    assetTransfer: observations.capabilities.staticAssetIngestion ? 'supported' : 'pending',
+    nativeSmoke: observations.nativeSmokeExecuted ? 'executed-see-checkpoint' : 'not-executed',
+    readyForNativePreparation:
+      observations.packageValid &&
+      observations.browserQualified &&
+      observations.capabilities.officialSkillAvailable &&
+      observations.capabilities.officialMcpConnected &&
+      Boolean(observations.identities.appKey && observations.identities.envKey) &&
+      observations.capabilities.contextInspection &&
+      observations.capabilities.mentorEditing &&
+      observations.capabilities.staticAssetIngestion,
+    tenantCalls: [],
+  };
 }

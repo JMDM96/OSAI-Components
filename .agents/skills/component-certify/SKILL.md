@@ -26,3 +26,18 @@ baseline or policy need a documented review of the intended behavior and fresh
 qualification; snapshot-update commands alone do not constitute that review.
 Report unsupported measurements and browser-only readiness plainly. Native host
 and mobile-webview claims require matching evidence from those actual lanes.
+
+
+Use the actual supported host: Windows x64 references keep their original paths;
+macOS arm64 references use `tests/browser/baselines/darwin-arm64`. Other hosts fail
+without fallback. Ordinary runs never create/update references. Preserve failed
+runs before rerunning. Follow the linked certification guide's explicit
+`npm run test:visual:update` commands for the selected component/fixtures and
+separate workbench; all descriptor visuals are included. Inspect every candidate
+and record sorted paths/hashes and conclusions in the host review JSON before
+normal qualification. Collection grants no readiness. Do not alter thresholds.
+
+Validate archived OS/version, architecture, reference set, corpus digest and browser
+pins. The complete supported corpus/reviews bind suite provenance independently
+of the build host. Report only the host actually measured; cross-machine inspection
+retains the report's host. Rerun full qualification after baseline/review changes.

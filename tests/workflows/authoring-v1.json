@@ -5,19 +5,53 @@
     "componentId": "status-chip",
     "request": "Create an accessible configurable label, read command and matching event using managed ownership and generated bindings.",
     "commands": [
-      { "script": "scaffold", "arguments": ["status-chip"] },
-      { "script": "bindings", "arguments": [] },
-      { "script": "typecheck", "arguments": [] },
-      { "script": "validate", "arguments": ["--component", "status-chip"] },
-      { "script": "build", "arguments": ["--component", "status-chip"] },
-      { "script": "inspect", "arguments": ["--component", "status-chip"] },
-      { "script": "verify", "arguments": ["--component", "status-chip"] }
+      {
+        "script": "scaffold",
+        "arguments": ["status-chip"]
+      },
+      {
+        "script": "bindings",
+        "arguments": []
+      },
+      {
+        "script": "typecheck",
+        "arguments": []
+      },
+      {
+        "script": "validate",
+        "arguments": ["--component", "status-chip"]
+      },
+      {
+        "script": "build",
+        "arguments": ["--component", "status-chip"]
+      },
+      {
+        "script": "inspect",
+        "arguments": ["--component", "status-chip"]
+      },
+      {
+        "script": "test:visual:update",
+        "arguments": []
+      },
+      {
+        "script": "verify",
+        "arguments": ["--component", "status-chip"]
+      }
     ]
   },
   "negative": [
-    { "source": "document.addEventListener('click', handler)", "gate": "unmanaged-allocation" },
-    { "source": "setTimeout(handler, 100)", "gate": "unmanaged-allocation" },
-    { "source": "new Worker('/unregistered.js')", "gate": "unmanaged-allocation" }
+    {
+      "source": "document.addEventListener('click', handler)",
+      "gate": "unmanaged-allocation"
+    },
+    {
+      "source": "setTimeout(handler, 100)",
+      "gate": "unmanaged-allocation"
+    },
+    {
+      "source": "new Worker('/unregistered.js')",
+      "gate": "unmanaged-allocation"
+    }
   ],
   "evaluation": {
     "workspace": "fresh isolated governed-source copy",
@@ -25,5 +59,39 @@
     "platformSourceEdits": false,
     "agentJudgmentIsDeterministic": false,
     "liveCheckpoint": "not-executed"
-  }
+  },
+  "visualReview": {
+    "selection": "actual-supported-host",
+    "includeDescriptorVisuals": true,
+    "reviewBeforeQualification": true,
+    "collectionIsEvidence": false
+  },
+  "integrationExamples": [
+    {
+      "name": "local-plan-only",
+      "packageValid": true,
+      "browserQualified": false,
+      "officialSkillAvailable": false,
+      "officialMcpConnected": false,
+      "expected": {
+        "package": "valid",
+        "certification": "pending",
+        "officialSkill": "pending",
+        "officialMcp": "pending",
+        "readyForNativePreparation": false
+      }
+    },
+    {
+      "name": "browser-ready-awaiting-connection",
+      "packageValid": true,
+      "browserQualified": true,
+      "officialSkillAvailable": true,
+      "officialMcpConnected": false,
+      "expected": {
+        "certification": "browser-verified",
+        "officialMcp": "pending",
+        "readyForNativePreparation": false
+      }
+    }
+  ]
 }

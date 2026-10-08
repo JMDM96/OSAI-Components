@@ -17,7 +17,9 @@ import type { RegisteredComponent } from './registry.js';
 import { checksum } from './release.js';
 import ts from 'typescript';
 
-export const SUITE_VERSION = '2.0.0';
+import { visualInputs } from './visual-host.js';
+
+export const SUITE_VERSION = '2.1.0';
 export const SHARED_SCENARIOS = [
   'lifecycle',
   'isolation',
@@ -95,14 +97,17 @@ export async function loadCertification(
     'tests/fixtures/negative/slow-input.ts',
     'packages/build-tools/src/certification.ts',
     'tests/browser/pipeline.spec.ts',
+    'tests/browser/workbench.spec.ts',
+    'packages/build-tools/src/browser-cli.ts',
     'packages/build-tools/src/verify.ts',
   ];
   const suiteHash = checksum(
-    canonicalJson(
-      await Promise.all(
+    canonicalJson({
+      sources: await Promise.all(
         suiteFiles.map(async (path) => [path, checksum(await readFile(join(root, path)))]),
       ),
-    ),
+      visuals: visualInputs(root),
+    }),
   );
   return {
     descriptor,

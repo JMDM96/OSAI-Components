@@ -1,3 +1,4 @@
+import { validateExecutionMetadata } from './visual-host.js';
 import { spawnSync } from 'node:child_process';
 import { readFile, mkdir, writeFile, cp } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -46,6 +47,7 @@ interface BrowserSuite {
   specs?: { title: string; tests: BrowserTest[] }[];
 }
 export interface BrowserReport {
+  config?: { metadata?: { execution?: unknown }; updateSnapshots?: string };
   suites: BrowserSuite[];
   errors?: unknown[];
   stats: { expected: number; unexpected: number; skipped: number; flaky: number };
@@ -626,9 +628,12 @@ export async function collectEvidence(
   release: BuiltRelease,
   report: BrowserReport,
 ): Promise<CompatibilityEvidence[]> {
+  validateExecutionMetadata(root, report.config?.metadata?.execution);
+  if (report.config?.updateSnapshots !== 'none')
+    throw new Error('Snapshot updates invalidate qualification evidence.');
   const trusted = await authority(root, release);
   const [selected] = await selectComponents(root, { manifestFile: release.config.manifest });
-  const certification = await loadCertification(selected!);
+  const certification = await loadCertification(selected!, root);
   const inventory = await requiredInventory(root, certification);
   const provenance = evidenceProvenance(certification, release.policy);
   if (

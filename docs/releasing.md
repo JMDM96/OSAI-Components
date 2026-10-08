@@ -90,3 +90,13 @@ Writers obtain an exclusive catalog lock, reread and validate the current catalo
 Commit `releases/catalog.json` after a successful internal registration. The writer owns its deterministic canonical JSON formatting, so it is excluded from Prettier alongside the lockfile; do not edit or reformat catalog records manually.
 
 Future components follow the same manifest, SDK, runtime, distribution, and evidence requirements. A Gantt component can be proposed separately once its data model, rendering dependencies, accessibility behavior, size budgets, and target capabilities are specified.
+
+## Host-specific visual qualification
+
+Follow [visual hosts and reviewed references](certification.md#visual-hosts-and-reviewed-references)
+for explicit collection, per-image review, and ordinary component/workbench runs.
+Supported execution hosts are Windows x64 and macOS arm64; only the executing
+host's references can be collected. Preserve failed reports and the other host's
+corpus. Suite/policy 2.1.0 bind all reference hashes and review metadata. Collection
+reports cannot grant readiness, and no numerical gate has changed. Actual Windows,
+ODC/O11 native and mobile execution must each be reported from their own evidence.

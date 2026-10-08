@@ -1,11 +1,26 @@
+# Dependencies and generated build output
 node_modules/
 dist/
 .build/
 .cache/
+*.tsbuildinfo
+
+# Generated test output. Reviewed images in tests/browser/baselines/ and
+# fixture assets are test inputs and must remain in Git.
 test-results/
 playwright-report/
 coverage/
-*.tsbuildinfo
+
+# Local environment configuration
 .env
 .env.*
 !.env.example
+
+# npm debug logs
+npm-debug.log*
+
+# macOS and Windows filesystem metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini

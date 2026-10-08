@@ -8,6 +8,7 @@ import {
   validateNativePlan,
   reconciliation,
   integrationProtocol,
+  integrationPreflight,
   redactIntegrationEvidence,
   saveNativePlans,
 } from './native-plan.js';
@@ -109,11 +110,53 @@ it('reconciles create/update/unchanged/conflict and requires fresh read-back aft
 });
 it('keeps local preparation separate from native mutation, publishing, and deployment authority', () => {
   const all = {
+    officialSkillAvailable: true,
+    officialMcpConnected: true,
     contextInspection: true,
     mentorEditing: true,
     staticAssetIngestion: true,
     studioAvailable: true,
   };
+  expect(integrationProtocol({ ...all, officialSkillAvailable: false }, {}).status).toBe(
+    'needs-official-skill',
+  );
+  expect(integrationProtocol({ ...all, officialMcpConnected: false }, {}).status).toBe(
+    'needs-mcp-connection',
+  );
+  expect(
+    integrationProtocol(
+      { ...all, staticAssetIngestion: false },
+      { appKey: 'fixture', envKey: 'fixture' },
+    ).next,
+  ).toContain('must not be used for UI assets');
+  expect(
+    integrationPreflight({
+      packageValid: true,
+      browserQualified: false,
+      capabilities: all,
+      identities: {},
+      nativeSmokeExecuted: false,
+    }),
+  ).toMatchObject({
+    certification: 'pending',
+    identities: 'pending',
+    nativeSmoke: 'not-executed',
+    readyForNativePreparation: false,
+    tenantCalls: [],
+  });
+  expect(
+    integrationPreflight({
+      packageValid: true,
+      browserQualified: true,
+      capabilities: { ...all, officialMcpConnected: false },
+      identities: {},
+      nativeSmokeExecuted: false,
+    }),
+  ).toMatchObject({
+    certification: 'browser-verified',
+    officialMcp: 'pending',
+    readyForNativePreparation: false,
+  });
   expect(integrationProtocol(all, {}).status).toBe('needs-identities');
   const identities = { appKey: 'inspected-app', envKey: 'inspected-environment' };
   expect(integrationProtocol({ ...all, contextInspection: false }, identities).status).toBe(
@@ -143,6 +186,8 @@ it('keeps local preparation separate from native mutation, publishing, and deplo
 it('redacts authentication material and keeps the generated artifact secret-free', async () => {
   const response = {
     mentor_session_token: 'secret-marker',
+    sessionId: 'secret-marker',
+    uploadUrl: 'secret-marker',
     nested: [
       {
         Authorization: 'Bearer secret-marker',

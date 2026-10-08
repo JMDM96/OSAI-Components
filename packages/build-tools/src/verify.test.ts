@@ -1,3 +1,5 @@
+import { executionMetadata } from './visual-host.js';
+import { SUITE_VERSION } from './certification.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { access, cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -93,7 +95,7 @@ function browserReport(release = built): BrowserReport {
                   }),
                 ),
                 policyVersion: release.policy.policyVersion,
-                suiteVersion: '2.0.0',
+                suiteVersion: SUITE_VERSION,
               }),
               jsonAttachment('accessibility-measurements', { violations: 0 }),
               jsonAttachment('leak-measurements', {
@@ -113,7 +115,7 @@ function browserReport(release = built): BrowserReport {
                 target,
                 browser,
                 browserVersion: pins.find((pin) => pin.name === browser)!.browserVersion,
-                suiteVersion: '2.0.0',
+                suiteVersion: SUITE_VERSION,
                 ...evidenceProvenance(certification, release.policy),
                 artifactChecksums: release.checksums,
                 passed: true,
@@ -209,6 +211,19 @@ function browserReport(release = built): BrowserReport {
   }));
   const tests = specs.flatMap((spec) => spec.tests);
   return {
+    config: {
+      updateSnapshots: 'none',
+      metadata: {
+        execution: {
+          ...executionMetadata(root),
+          platform: 'win32',
+          architecture: 'x64',
+          referenceSet: 'win32-x64',
+          osRelease: 'synthetic-parser-fixture',
+          osVersion: 'synthetic-parser-fixture',
+        },
+      },
+    },
     suites: [{ title: 'Synthetic parser input', specs }],
     stats: { expected: tests.length, unexpected: 0, skipped: 0, flaky: 0 },
     errors: [],
@@ -309,7 +324,7 @@ describe('browser measurement parser', () => {
   it.each([
     ['artifactChecksum', '0'.repeat(64)],
     ['policyVersion', '99.0.0'],
-    ['suiteVersion', 'old-suite'],
+    ['suiteVersion', '2.0.0'],
     ['browserVersion', '0.0.0'],
     ['artifacts', {}],
   ])('rejects stale or incorrect proof %s', async (field, value) => {
@@ -674,4 +689,29 @@ describe('verification before immutable registration', () => {
     for (const setup of [changed, unit, stale])
       await expect(access(setup.catalog)).rejects.toThrow();
   });
+});
+
+it('rejects absent, inconsistent, stale and collection host reports before granting evidence', async () => {
+  for (const edit of [
+    (report: BrowserReport) => {
+      delete report.config;
+    },
+    (report: BrowserReport) => {
+      report.config!.updateSnapshots = 'all';
+    },
+    (report: BrowserReport) => {
+      (report.config!.metadata!.execution as Record<string, unknown>).referenceSet = 'darwin-arm64';
+    },
+    (report: BrowserReport) => {
+      (report.config!.metadata!.execution as Record<string, unknown>).baselineDigest = 'stale';
+    },
+    (report: BrowserReport) => {
+      (report.config!.metadata!.execution as Record<string, unknown>).purpose =
+        'reference-collection';
+    },
+  ]) {
+    const report = browserReport();
+    edit(report);
+    await expect(collectEvidence(root, built, report)).rejects.toThrow();
+  }
 });

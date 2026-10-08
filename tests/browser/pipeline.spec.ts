@@ -7,7 +7,7 @@ import type { JsonObject } from '@osai/contract-schemas';
 import type { ComponentDefinition, ComponentManifest } from '@osai/component-sdk';
 import type { RuntimeBridge } from '../../packages/runtime-bridge/src/index.js';
 
-const suiteVersion = '2.0.0';
+import { SUITE_VERSION as suiteVersion } from '../../packages/build-tools/src/certification.js';
 const gates = (...names: string[]): void => {
   for (const name of names) test.info().annotations.push({ type: 'gate', description: name });
 };
@@ -815,7 +815,7 @@ for (const visualState of [
   'zoomed',
   'reduced-motion',
 ]) {
-  test(`visual baseline: ${visualState}`, async ({ page }) => {
+  test(`visual baseline: ${visualState}`, { tag: '@visual' }, async ({ page }) => {
     gates('visual');
     if (visualState === 'narrow') await page.setViewportSize({ width: 320, height: 720 });
     if (visualState === 'zoomed') {

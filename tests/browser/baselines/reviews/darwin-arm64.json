@@ -1,0 +1,784 @@
+{
+  "host": "darwin-arm64",
+  "reviewer": "Codex visual inspection",
+  "reviewDate": "2026-10-06",
+  "findings": "Reviewed all 96 candidate images through 42 distinct SHA-256 groups, across both target labels and Chromium/Firefox/WebKit. Inspected seven labelled contact sheets plus full-resolution zoomed palette and Firefox workspace. Byte-identical copies share the inspected pixels; every file is enumerated below. Browser font/form-control differences are accepted for this Mac corpus only; no Windows references or numerical thresholds changed. No unexpected clipping, missing content or overlapping controls observed. Scrollable zoomed-list truncation and readiness masks are intentional, with separate behavioral assertions.",
+  "reviewGroups": [
+    {
+      "index": 1,
+      "sha256": "2d1304ed285c68457862a585fd8609263eaf258fc21623b973c11600fc26168c",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/closed.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/closed.png"
+      ],
+      "finding": "Closed palette leaves the complete harness visible; navigation, cards and trigger align without overlap."
+    },
+    {
+      "index": 2,
+      "sha256": "770e65a4c08f38dff06947099bc13dee086de9a6fc94a08fa9808c0413077194",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/command-palette-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/command-palette-default.png"
+      ],
+      "finding": "Single-command descriptor preview shows its heading, close control, focused search, selected One row and footer without clipping. Default document font is expected in this fixture."
+    },
+    {
+      "index": 3,
+      "sha256": "163156c3d046ee0875b55d3ee8bdaf934963cb004e09c92f2aec750a8aee1e58",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/disabled.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/disabled.png"
+      ],
+      "finding": "Disabled billing command and its explanation are visibly subdued; header, focus and footer remain visible."
+    },
+    {
+      "index": 4,
+      "sha256": "5a91ef4ff897fcde408813d3fdbfbce499be8cd15f97d40998aeecc956e00e0e",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/empty.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/empty.png"
+      ],
+      "finding": "The query and no-results message are readable, with no stale option row; footer reports zero commands."
+    },
+    {
+      "index": 5,
+      "sha256": "6b71c1294043766bf682dd9c7f1dc586a3676ca2d85c660194fc1a12916b9bab",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/grouped.png",
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/open.png",
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/reduced-motion.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/grouped.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/open.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/reduced-motion.png"
+      ],
+      "finding": "All five rows and category labels are aligned; the selected first row and disabled billing row are distinct. Open and reduced-motion files in this hash group are byte-identical."
+    },
+    {
+      "index": 6,
+      "sha256": "b65a6d7a51066afce073f317b5bce2fbb66a9450ac4a16cdcfac501ff487fb5b",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/minimal-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/minimal-default.png"
+      ],
+      "finding": "Expected plain Hello at the default document inset with otherwise empty white content."
+    },
+    {
+      "index": 7,
+      "sha256": "79da8069cf408bd5586cd3fcac417b6bcbd322727c283def8a999317874db81b",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/narrow.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/narrow.png"
+      ],
+      "finding": "At 320 pixels the palette remains inside the viewport; labels wrap, all five rows and the footer remain readable without horizontal clipping."
+    },
+    {
+      "index": 8,
+      "sha256": "37b74816711e0dbe1f2a8919aa10606da76f0a011032b5e9fce42c8ff21d07eb",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/query.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/query.png"
+      ],
+      "finding": "The project query shows exactly two matching rows with descriptions and a two-command footer."
+    },
+    {
+      "index": 9,
+      "sha256": "a066d7d979568756e60c5923618e7e161289c6542639b59bce8b72aa1c8574e3",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/resources-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/resources-default.png"
+      ],
+      "finding": "Expected Start local work button, Ready output and rectangular fixture glyph at the document inset. Worker/font/image behavior requires the independent browser assertions."
+    },
+    {
+      "index": 10,
+      "sha256": "1ad164b0396ea326fa2690fb2179ced76582997285f622213346d3672c155c2f",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/rtl.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/rtl.png"
+      ],
+      "finding": "Heading/search, categories and footer are mirrored coherently. Selected row and all five commands remain visible."
+    },
+    {
+      "index": 11,
+      "sha256": "7212488593af1900ad517d31a656f06deaca28296b8746a926717998636656fb",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/workbench-activity.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/workbench-activity.png"
+      ],
+      "finding": "Active Activity navigation, reset/export controls and two bounded log entries align. Magenta readiness area is the deliberate snapshot mask."
+    },
+    {
+      "index": 12,
+      "sha256": "9b472dd6330b720c8d35cb14c2676bde10fb907a02d7d3ab4945d93da2d3b432",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/workbench-library.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/workbench-library.png"
+      ],
+      "finding": "Active Component library navigation and three distinct production/fixture cards with Preview actions align. Readiness mask is intentional."
+    },
+    {
+      "index": 13,
+      "sha256": "3ad44a6114b74f4cc2d60196a4fa7cf030180dc3e6ad940b11f98dcc6d7e3921",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/workbench-workspace.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/workbench-workspace.png"
+      ],
+      "finding": "Selectors, configuration inputs, commands and isolated empty preview are readable and aligned; empty preview before Create is expected. Firefox native textarea resize controls differ intentionally. Readiness mask is intentional."
+    },
+    {
+      "index": 14,
+      "sha256": "3fd613a342df11320246440c52c90efcc7ac3e099e315910ab1c331593119323",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/zoomed.png",
+        "tests/browser/baselines/darwin-arm64/odc-chromium/zoomed.png"
+      ],
+      "finding": "At 200 percent zoom the heading, close control, focused input and footer remain visible. The list deliberately scrolls vertically; lower rows are outside its current viewport. The separate keyboard test checks End scrolls the last row into view."
+    },
+    {
+      "index": 15,
+      "sha256": "4cbc5a902224b8d9499a8ed204b60f469e40ef002d5074142011d51b45997632",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/closed.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/closed.png"
+      ],
+      "finding": "Closed palette leaves the complete harness visible; navigation, cards and trigger align without overlap."
+    },
+    {
+      "index": 16,
+      "sha256": "49136010a52883bb668baf5d5e8815904223d3dcee892b029dfc6d0280f05a23",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/command-palette-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/command-palette-default.png"
+      ],
+      "finding": "Single-command descriptor preview shows its heading, close control, focused search, selected One row and footer without clipping. Default document font is expected in this fixture."
+    },
+    {
+      "index": 17,
+      "sha256": "ff7832964cc7f1d267a680e15cb367ef87e7396066c9cff5aab9930f919faaaf",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/disabled.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/disabled.png"
+      ],
+      "finding": "Disabled billing command and its explanation are visibly subdued; header, focus and footer remain visible."
+    },
+    {
+      "index": 18,
+      "sha256": "1ccdf914c6de2389ad7ae5428fcdac4885d5a21dc3d3579862a0358ed7b2ee42",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/empty.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/empty.png"
+      ],
+      "finding": "The query and no-results message are readable, with no stale option row; footer reports zero commands."
+    },
+    {
+      "index": 19,
+      "sha256": "ebbf695b57cd380d40aaeb6bb5826fafa38f244ba93223e0bb1cbf65e7c04b65",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/grouped.png",
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/open.png",
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/reduced-motion.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/grouped.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/open.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/reduced-motion.png"
+      ],
+      "finding": "All five rows and category labels are aligned; the selected first row and disabled billing row are distinct. Open and reduced-motion files in this hash group are byte-identical."
+    },
+    {
+      "index": 20,
+      "sha256": "02e5b93d1930680122ff138c34dd1c3f3b5d78f8cc683b795bb13133ab79ee38",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/minimal-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/minimal-default.png"
+      ],
+      "finding": "Expected plain Hello at the default document inset with otherwise empty white content."
+    },
+    {
+      "index": 21,
+      "sha256": "47d06913bd294fef0e47774152169371815b300f606411bfa9f8f9fe92278821",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/narrow.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/narrow.png"
+      ],
+      "finding": "At 320 pixels the palette remains inside the viewport; labels wrap, all five rows and the footer remain readable without horizontal clipping."
+    },
+    {
+      "index": 22,
+      "sha256": "fb95f159f2ccde1bdc373b3749ff826176dacab6118d84e542950aa3a1a33176",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/query.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/query.png"
+      ],
+      "finding": "The project query shows exactly two matching rows with descriptions and a two-command footer."
+    },
+    {
+      "index": 23,
+      "sha256": "594577c58d8e0bf24027481c6cdf3510e36dcc043dd31afb5bb855bc4ee12d3a",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/resources-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/resources-default.png"
+      ],
+      "finding": "Expected Start local work button, Ready output and rectangular fixture glyph at the document inset. Worker/font/image behavior requires the independent browser assertions."
+    },
+    {
+      "index": 24,
+      "sha256": "9b8894f067ab1914dadf40c794b8a8c7b2a49b4a07f60444442617a0a46e10fa",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/rtl.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/rtl.png"
+      ],
+      "finding": "Heading/search, categories and footer are mirrored coherently. Selected row and all five commands remain visible."
+    },
+    {
+      "index": 25,
+      "sha256": "9edbc43238aa02265f6f79f95e3af6253ba6d2051b9a1fdb9510b260944dd15a",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/workbench-activity.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/workbench-activity.png"
+      ],
+      "finding": "Active Activity navigation, reset/export controls and two bounded log entries align. Magenta readiness area is the deliberate snapshot mask."
+    },
+    {
+      "index": 26,
+      "sha256": "67ebc6944c7d8a098f6fd5fc879fede4db4749cdb658b0f816c6ca16d1c8d4fb",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/workbench-library.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/workbench-library.png"
+      ],
+      "finding": "Active Component library navigation and three distinct production/fixture cards with Preview actions align. Readiness mask is intentional."
+    },
+    {
+      "index": 27,
+      "sha256": "1f37190e62e59e30a4917e899c1ececb0c42ce0348a1bb5859812ba238fdecb2",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/workbench-workspace.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/workbench-workspace.png"
+      ],
+      "finding": "Selectors, configuration inputs, commands and isolated empty preview are readable and aligned; empty preview before Create is expected. Firefox native textarea resize controls differ intentionally. Readiness mask is intentional."
+    },
+    {
+      "index": 28,
+      "sha256": "3ecc94b2b5a0dfe0caff5a8a37bdca59ec7b4b550d3b353e4378111d6f03f590",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/zoomed.png",
+        "tests/browser/baselines/darwin-arm64/odc-firefox/zoomed.png"
+      ],
+      "finding": "At 200 percent zoom the heading, close control, focused input and footer remain visible. The list deliberately scrolls vertically; lower rows are outside its current viewport. The separate keyboard test checks End scrolls the last row into view."
+    },
+    {
+      "index": 29,
+      "sha256": "99ad18eb5e1efcde57c7ee4e889fe04e8d4f6a5858aee96367bd26a9763b02e4",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/closed.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/closed.png"
+      ],
+      "finding": "Closed palette leaves the complete harness visible; navigation, cards and trigger align without overlap."
+    },
+    {
+      "index": 30,
+      "sha256": "e195f57fcf10779a35bb37cef5e1a64f61f9058a1131c7a86629a1e3c367ddd1",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/command-palette-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/command-palette-default.png"
+      ],
+      "finding": "Single-command descriptor preview shows its heading, close control, focused search, selected One row and footer without clipping. Default document font is expected in this fixture."
+    },
+    {
+      "index": 31,
+      "sha256": "6fb95e6b8db2c9242e40a3092d700ce5d7dc2db5cf0843d36ea95e3449d1073c",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/disabled.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/disabled.png"
+      ],
+      "finding": "Disabled billing command and its explanation are visibly subdued; header, focus and footer remain visible."
+    },
+    {
+      "index": 32,
+      "sha256": "d64f3c3b756d3521c6b0dfd7331954c971ccc53f1d24edcaa6e03c3c85229650",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/empty.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/empty.png"
+      ],
+      "finding": "The query and no-results message are readable, with no stale option row; footer reports zero commands."
+    },
+    {
+      "index": 33,
+      "sha256": "df8f9b65f2f2fbe9d99c74c9044024de86b3374743cd760d998878d9014d6ad5",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/grouped.png",
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/open.png",
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/reduced-motion.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/grouped.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/open.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/reduced-motion.png"
+      ],
+      "finding": "All five rows and category labels are aligned; the selected first row and disabled billing row are distinct. Open and reduced-motion files in this hash group are byte-identical."
+    },
+    {
+      "index": 34,
+      "sha256": "013693b64dd0cd5d2e1d4d1a35aec9faa710483f6e18b45341eb761ebc352cda",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/minimal-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/minimal-default.png"
+      ],
+      "finding": "Expected plain Hello at the default document inset with otherwise empty white content."
+    },
+    {
+      "index": 35,
+      "sha256": "35bb48f3846c8c5c82df65446bae4497ace5e337eabbd1d9de2f75b6100c0ff7",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/narrow.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/narrow.png"
+      ],
+      "finding": "At 320 pixels the palette remains inside the viewport; labels wrap, all five rows and the footer remain readable without horizontal clipping."
+    },
+    {
+      "index": 36,
+      "sha256": "316ffde2911b6f8603c1a2c6d2dea94a35fc36ac1997e67ff46971bcee1912b2",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/query.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/query.png"
+      ],
+      "finding": "The project query shows exactly two matching rows with descriptions and a two-command footer."
+    },
+    {
+      "index": 37,
+      "sha256": "207a6bd9a7fc3b180e771b7d45f31f70dc327f8a831d4c1803d5123ecafbb4f0",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/resources-default.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/resources-default.png"
+      ],
+      "finding": "Expected Start local work button, Ready output and rectangular fixture glyph at the document inset. Worker/font/image behavior requires the independent browser assertions."
+    },
+    {
+      "index": 38,
+      "sha256": "877ef522ed86c6bd8dad0d22437816ebd6d9394e748a0d5ff749de178c2a55e0",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/rtl.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/rtl.png"
+      ],
+      "finding": "Heading/search, categories and footer are mirrored coherently. Selected row and all five commands remain visible."
+    },
+    {
+      "index": 39,
+      "sha256": "63a946bb0e936579fac545e41aaf5f590254d7f7afde56a60830dfd5eabb2b90",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/workbench-activity.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/workbench-activity.png"
+      ],
+      "finding": "Active Activity navigation, reset/export controls and two bounded log entries align. Magenta readiness area is the deliberate snapshot mask."
+    },
+    {
+      "index": 40,
+      "sha256": "cf2c41624d22c5a984aba11392b67cd558739e1c8db70558cc73be1e355051d6",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/workbench-library.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/workbench-library.png"
+      ],
+      "finding": "Active Component library navigation and three distinct production/fixture cards with Preview actions align. Readiness mask is intentional."
+    },
+    {
+      "index": 41,
+      "sha256": "c5c6b6600c2b33992adac8af59402d5418b78ce6f7342657f5050c79bd9fc12b",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/workbench-workspace.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/workbench-workspace.png"
+      ],
+      "finding": "Selectors, configuration inputs, commands and isolated empty preview are readable and aligned; empty preview before Create is expected. Firefox native textarea resize controls differ intentionally. Readiness mask is intentional."
+    },
+    {
+      "index": 42,
+      "sha256": "8a989ca73e61f86e212d78889efc62c025ec2135976adb5010da288c5d6c3733",
+      "files": [
+        "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/zoomed.png",
+        "tests/browser/baselines/darwin-arm64/odc-webkit/zoomed.png"
+      ],
+      "finding": "At 200 percent zoom the heading, close control, focused input and footer remain visible. The list deliberately scrolls vertically; lower rows are outside its current viewport. The separate keyboard test checks End scrolls the last row into view."
+    }
+  ],
+  "files": [
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/closed.png",
+      "sha256": "2d1304ed285c68457862a585fd8609263eaf258fc21623b973c11600fc26168c"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/command-palette-default.png",
+      "sha256": "770e65a4c08f38dff06947099bc13dee086de9a6fc94a08fa9808c0413077194"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/disabled.png",
+      "sha256": "163156c3d046ee0875b55d3ee8bdaf934963cb004e09c92f2aec750a8aee1e58"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/empty.png",
+      "sha256": "5a91ef4ff897fcde408813d3fdbfbce499be8cd15f97d40998aeecc956e00e0e"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/grouped.png",
+      "sha256": "6b71c1294043766bf682dd9c7f1dc586a3676ca2d85c660194fc1a12916b9bab"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/minimal-default.png",
+      "sha256": "b65a6d7a51066afce073f317b5bce2fbb66a9450ac4a16cdcfac501ff487fb5b"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/narrow.png",
+      "sha256": "79da8069cf408bd5586cd3fcac417b6bcbd322727c283def8a999317874db81b"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/open.png",
+      "sha256": "6b71c1294043766bf682dd9c7f1dc586a3676ca2d85c660194fc1a12916b9bab"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/query.png",
+      "sha256": "37b74816711e0dbe1f2a8919aa10606da76f0a011032b5e9fce42c8ff21d07eb"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/reduced-motion.png",
+      "sha256": "6b71c1294043766bf682dd9c7f1dc586a3676ca2d85c660194fc1a12916b9bab"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/resources-default.png",
+      "sha256": "a066d7d979568756e60c5923618e7e161289c6542639b59bce8b72aa1c8574e3"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/rtl.png",
+      "sha256": "1ad164b0396ea326fa2690fb2179ced76582997285f622213346d3672c155c2f"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/workbench-activity.png",
+      "sha256": "7212488593af1900ad517d31a656f06deaca28296b8746a926717998636656fb"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/workbench-library.png",
+      "sha256": "9b472dd6330b720c8d35cb14c2676bde10fb907a02d7d3ab4945d93da2d3b432"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/workbench-workspace.png",
+      "sha256": "3ad44a6114b74f4cc2d60196a4fa7cf030180dc3e6ad940b11f98dcc6d7e3921"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-chromium/zoomed.png",
+      "sha256": "3fd613a342df11320246440c52c90efcc7ac3e099e315910ab1c331593119323"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/closed.png",
+      "sha256": "4cbc5a902224b8d9499a8ed204b60f469e40ef002d5074142011d51b45997632"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/command-palette-default.png",
+      "sha256": "49136010a52883bb668baf5d5e8815904223d3dcee892b029dfc6d0280f05a23"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/disabled.png",
+      "sha256": "ff7832964cc7f1d267a680e15cb367ef87e7396066c9cff5aab9930f919faaaf"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/empty.png",
+      "sha256": "1ccdf914c6de2389ad7ae5428fcdac4885d5a21dc3d3579862a0358ed7b2ee42"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/grouped.png",
+      "sha256": "ebbf695b57cd380d40aaeb6bb5826fafa38f244ba93223e0bb1cbf65e7c04b65"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/minimal-default.png",
+      "sha256": "02e5b93d1930680122ff138c34dd1c3f3b5d78f8cc683b795bb13133ab79ee38"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/narrow.png",
+      "sha256": "47d06913bd294fef0e47774152169371815b300f606411bfa9f8f9fe92278821"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/open.png",
+      "sha256": "ebbf695b57cd380d40aaeb6bb5826fafa38f244ba93223e0bb1cbf65e7c04b65"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/query.png",
+      "sha256": "fb95f159f2ccde1bdc373b3749ff826176dacab6118d84e542950aa3a1a33176"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/reduced-motion.png",
+      "sha256": "ebbf695b57cd380d40aaeb6bb5826fafa38f244ba93223e0bb1cbf65e7c04b65"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/resources-default.png",
+      "sha256": "594577c58d8e0bf24027481c6cdf3510e36dcc043dd31afb5bb855bc4ee12d3a"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/rtl.png",
+      "sha256": "9b8894f067ab1914dadf40c794b8a8c7b2a49b4a07f60444442617a0a46e10fa"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/workbench-activity.png",
+      "sha256": "9edbc43238aa02265f6f79f95e3af6253ba6d2051b9a1fdb9510b260944dd15a"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/workbench-library.png",
+      "sha256": "67ebc6944c7d8a098f6fd5fc879fede4db4749cdb658b0f816c6ca16d1c8d4fb"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/workbench-workspace.png",
+      "sha256": "1f37190e62e59e30a4917e899c1ececb0c42ce0348a1bb5859812ba238fdecb2"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-firefox/zoomed.png",
+      "sha256": "3ecc94b2b5a0dfe0caff5a8a37bdca59ec7b4b550d3b353e4378111d6f03f590"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/closed.png",
+      "sha256": "99ad18eb5e1efcde57c7ee4e889fe04e8d4f6a5858aee96367bd26a9763b02e4"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/command-palette-default.png",
+      "sha256": "e195f57fcf10779a35bb37cef5e1a64f61f9058a1131c7a86629a1e3c367ddd1"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/disabled.png",
+      "sha256": "6fb95e6b8db2c9242e40a3092d700ce5d7dc2db5cf0843d36ea95e3449d1073c"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/empty.png",
+      "sha256": "d64f3c3b756d3521c6b0dfd7331954c971ccc53f1d24edcaa6e03c3c85229650"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/grouped.png",
+      "sha256": "df8f9b65f2f2fbe9d99c74c9044024de86b3374743cd760d998878d9014d6ad5"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/minimal-default.png",
+      "sha256": "013693b64dd0cd5d2e1d4d1a35aec9faa710483f6e18b45341eb761ebc352cda"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/narrow.png",
+      "sha256": "35bb48f3846c8c5c82df65446bae4497ace5e337eabbd1d9de2f75b6100c0ff7"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/open.png",
+      "sha256": "df8f9b65f2f2fbe9d99c74c9044024de86b3374743cd760d998878d9014d6ad5"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/query.png",
+      "sha256": "316ffde2911b6f8603c1a2c6d2dea94a35fc36ac1997e67ff46971bcee1912b2"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/reduced-motion.png",
+      "sha256": "df8f9b65f2f2fbe9d99c74c9044024de86b3374743cd760d998878d9014d6ad5"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/resources-default.png",
+      "sha256": "207a6bd9a7fc3b180e771b7d45f31f70dc327f8a831d4c1803d5123ecafbb4f0"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/rtl.png",
+      "sha256": "877ef522ed86c6bd8dad0d22437816ebd6d9394e748a0d5ff749de178c2a55e0"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/workbench-activity.png",
+      "sha256": "63a946bb0e936579fac545e41aaf5f590254d7f7afde56a60830dfd5eabb2b90"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/workbench-library.png",
+      "sha256": "cf2c41624d22c5a984aba11392b67cd558739e1c8db70558cc73be1e355051d6"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/workbench-workspace.png",
+      "sha256": "c5c6b6600c2b33992adac8af59402d5418b78ce6f7342657f5050c79bd9fc12b"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/o11-reactive-webkit/zoomed.png",
+      "sha256": "8a989ca73e61f86e212d78889efc62c025ec2135976adb5010da288c5d6c3733"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/closed.png",
+      "sha256": "2d1304ed285c68457862a585fd8609263eaf258fc21623b973c11600fc26168c"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/command-palette-default.png",
+      "sha256": "770e65a4c08f38dff06947099bc13dee086de9a6fc94a08fa9808c0413077194"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/disabled.png",
+      "sha256": "163156c3d046ee0875b55d3ee8bdaf934963cb004e09c92f2aec750a8aee1e58"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/empty.png",
+      "sha256": "5a91ef4ff897fcde408813d3fdbfbce499be8cd15f97d40998aeecc956e00e0e"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/grouped.png",
+      "sha256": "6b71c1294043766bf682dd9c7f1dc586a3676ca2d85c660194fc1a12916b9bab"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/minimal-default.png",
+      "sha256": "b65a6d7a51066afce073f317b5bce2fbb66a9450ac4a16cdcfac501ff487fb5b"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/narrow.png",
+      "sha256": "79da8069cf408bd5586cd3fcac417b6bcbd322727c283def8a999317874db81b"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/open.png",
+      "sha256": "6b71c1294043766bf682dd9c7f1dc586a3676ca2d85c660194fc1a12916b9bab"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/query.png",
+      "sha256": "37b74816711e0dbe1f2a8919aa10606da76f0a011032b5e9fce42c8ff21d07eb"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/reduced-motion.png",
+      "sha256": "6b71c1294043766bf682dd9c7f1dc586a3676ca2d85c660194fc1a12916b9bab"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/resources-default.png",
+      "sha256": "a066d7d979568756e60c5923618e7e161289c6542639b59bce8b72aa1c8574e3"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/rtl.png",
+      "sha256": "1ad164b0396ea326fa2690fb2179ced76582997285f622213346d3672c155c2f"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/workbench-activity.png",
+      "sha256": "7212488593af1900ad517d31a656f06deaca28296b8746a926717998636656fb"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/workbench-library.png",
+      "sha256": "9b472dd6330b720c8d35cb14c2676bde10fb907a02d7d3ab4945d93da2d3b432"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/workbench-workspace.png",
+      "sha256": "3ad44a6114b74f4cc2d60196a4fa7cf030180dc3e6ad940b11f98dcc6d7e3921"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-chromium/zoomed.png",
+      "sha256": "3fd613a342df11320246440c52c90efcc7ac3e099e315910ab1c331593119323"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/closed.png",
+      "sha256": "4cbc5a902224b8d9499a8ed204b60f469e40ef002d5074142011d51b45997632"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/command-palette-default.png",
+      "sha256": "49136010a52883bb668baf5d5e8815904223d3dcee892b029dfc6d0280f05a23"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/disabled.png",
+      "sha256": "ff7832964cc7f1d267a680e15cb367ef87e7396066c9cff5aab9930f919faaaf"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/empty.png",
+      "sha256": "1ccdf914c6de2389ad7ae5428fcdac4885d5a21dc3d3579862a0358ed7b2ee42"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/grouped.png",
+      "sha256": "ebbf695b57cd380d40aaeb6bb5826fafa38f244ba93223e0bb1cbf65e7c04b65"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/minimal-default.png",
+      "sha256": "02e5b93d1930680122ff138c34dd1c3f3b5d78f8cc683b795bb13133ab79ee38"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/narrow.png",
+      "sha256": "47d06913bd294fef0e47774152169371815b300f606411bfa9f8f9fe92278821"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/open.png",
+      "sha256": "ebbf695b57cd380d40aaeb6bb5826fafa38f244ba93223e0bb1cbf65e7c04b65"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/query.png",
+      "sha256": "fb95f159f2ccde1bdc373b3749ff826176dacab6118d84e542950aa3a1a33176"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/reduced-motion.png",
+      "sha256": "ebbf695b57cd380d40aaeb6bb5826fafa38f244ba93223e0bb1cbf65e7c04b65"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/resources-default.png",
+      "sha256": "594577c58d8e0bf24027481c6cdf3510e36dcc043dd31afb5bb855bc4ee12d3a"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/rtl.png",
+      "sha256": "9b8894f067ab1914dadf40c794b8a8c7b2a49b4a07f60444442617a0a46e10fa"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/workbench-activity.png",
+      "sha256": "9edbc43238aa02265f6f79f95e3af6253ba6d2051b9a1fdb9510b260944dd15a"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/workbench-library.png",
+      "sha256": "67ebc6944c7d8a098f6fd5fc879fede4db4749cdb658b0f816c6ca16d1c8d4fb"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/workbench-workspace.png",
+      "sha256": "1f37190e62e59e30a4917e899c1ececb0c42ce0348a1bb5859812ba238fdecb2"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-firefox/zoomed.png",
+      "sha256": "3ecc94b2b5a0dfe0caff5a8a37bdca59ec7b4b550d3b353e4378111d6f03f590"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/closed.png",
+      "sha256": "99ad18eb5e1efcde57c7ee4e889fe04e8d4f6a5858aee96367bd26a9763b02e4"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/command-palette-default.png",
+      "sha256": "e195f57fcf10779a35bb37cef5e1a64f61f9058a1131c7a86629a1e3c367ddd1"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/disabled.png",
+      "sha256": "6fb95e6b8db2c9242e40a3092d700ce5d7dc2db5cf0843d36ea95e3449d1073c"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/empty.png",
+      "sha256": "d64f3c3b756d3521c6b0dfd7331954c971ccc53f1d24edcaa6e03c3c85229650"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/grouped.png",
+      "sha256": "df8f9b65f2f2fbe9d99c74c9044024de86b3374743cd760d998878d9014d6ad5"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/minimal-default.png",
+      "sha256": "013693b64dd0cd5d2e1d4d1a35aec9faa710483f6e18b45341eb761ebc352cda"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/narrow.png",
+      "sha256": "35bb48f3846c8c5c82df65446bae4497ace5e337eabbd1d9de2f75b6100c0ff7"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/open.png",
+      "sha256": "df8f9b65f2f2fbe9d99c74c9044024de86b3374743cd760d998878d9014d6ad5"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/query.png",
+      "sha256": "316ffde2911b6f8603c1a2c6d2dea94a35fc36ac1997e67ff46971bcee1912b2"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/reduced-motion.png",
+      "sha256": "df8f9b65f2f2fbe9d99c74c9044024de86b3374743cd760d998878d9014d6ad5"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/resources-default.png",
+      "sha256": "207a6bd9a7fc3b180e771b7d45f31f70dc327f8a831d4c1803d5123ecafbb4f0"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/rtl.png",
+      "sha256": "877ef522ed86c6bd8dad0d22437816ebd6d9394e748a0d5ff749de178c2a55e0"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/workbench-activity.png",
+      "sha256": "63a946bb0e936579fac545e41aaf5f590254d7f7afde56a60830dfd5eabb2b90"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/workbench-library.png",
+      "sha256": "cf2c41624d22c5a984aba11392b67cd558739e1c8db70558cc73be1e355051d6"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/workbench-workspace.png",
+      "sha256": "c5c6b6600c2b33992adac8af59402d5418b78ce6f7342657f5050c79bd9fc12b"
+    },
+    {
+      "path": "tests/browser/baselines/darwin-arm64/odc-webkit/zoomed.png",
+      "sha256": "8a989ca73e61f86e212d78889efc62c025ec2135976adb5010da288c5d6c3733"
+    }
+  ]
+}

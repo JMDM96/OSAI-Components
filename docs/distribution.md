@@ -123,3 +123,13 @@ The fixture is opt-in and cannot enter normal production release discovery.
 
 Legacy adapter-v1 packages remain read-only inspection inputs. They have incomplete
 handoff metadata and cannot be upgraded by relabelling historical evidence.
+
+## Visual provenance migration (suite and policy 2.1.0)
+
+Suite and policy versions advance from 2.0.0 to 2.1.0 to bind the reviewed Windows
+and macOS reference corpus and validate execution-host report metadata. All
+numerical thresholds and serialized authoring/profile/adapter/evidence formats
+are unchanged. Policy format 2.0 still reads historical suite 2.0.0 policies;
+that does not qualify a newly built 2.1.0 candidate. Registered 1.0.0 palette
+payloads remain immutable. The unregistered palette 2.0.0 candidate can be rebuilt
+with these certification inputs and needs fresh complete verification.

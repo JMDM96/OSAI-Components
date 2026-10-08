@@ -8,13 +8,13 @@ Read [native integration protocol](../../../docs/native-integration.md) and
 with `npm run native-plan -- --component <id>` after building and inspecting the
 release. Local planning does not authenticate, mutate a tenant, publish, or deploy.
 
-For an explicitly requested live operation, inspect the current tool catalog and
-follow each description/input schema. Before the first OutSystems call, call
-`authenticate`, share its returned URL, and wait for the user's confirmation.
-If a remote localhost callback cannot load, use the user's full callback URL with
-`complete_authentication`; never store it in files, plans, logs, or evidence.
-On `data.category: AuthError`, authenticate again and retry the original call once.
-Surface an authenticate error verbatim without guessing server internals.
+Before live work, read the complete installed official `outsystems-mcp` skill from
+the host's skill catalog. Then inspect the actual available tool descriptions and
+input schemas. Follow that skill's client authentication, Mentor session, polling,
+and error rules; do not assume authentication tool names or invent signatures.
+The observed official interface uses client-managed OAuth, with no server
+`authenticate` tool. Missing installation or connection is a pending prerequisite;
+Mentor is the intended route and Studio is not an automatic substitute.
 
 Resolve app/environment/asset keys with actual inspection or ask for the missing
 identity. Never infer opaque IDs from names. Pass the environment per scoped call.
@@ -23,7 +23,12 @@ OML bytes stay server-side. Reconcile against read-back state, protect user-owne
 conflicts, and read back after any partial failure before retrying. Echo refreshed
 session tokens only to the tool that requires them; exclude secrets from evidence.
 
-Confirm the available tool can ingest browser static assets. If not, provide the
+Require matching passing browser certification before claiming native readiness.
+Report package, certification, official interface, identities, asset transfer and
+host smoke separately, as described in the protocol.
+
+Confirm the available tool can ingest the exact browser static assets. Document
+uploads and a successful prompt alone do not establish resource ingestion. If not, provide the
 concrete Studio/manual import handoff from the plan. `extlib_upload` is for .NET
 server libraries, never UI scripts/styles/images. Native edit authority does not
 authorize publication or deployment. Obtain missing authority only after the

@@ -1,12 +1,35 @@
 import { defineConfig } from '@playwright/test';
 import policy from './release-policy.json' with { type: 'json' };
 
+import {
+  executionMetadata,
+  snapshotTemplate,
+  visualHost,
+  assertReviewedReferences,
+} from './packages/build-tools/src/visual-host.js';
+
+const host = visualHost();
+const collection = process.env.OSAI_VISUAL_COLLECTION === host;
+if (process.env.OSAI_VISUAL_COLLECTION && !collection)
+  throw new Error('Reference collection cannot target another host.');
+if (!collection) assertReviewedReferences(process.cwd(), host);
+
 const port = Number(process.env.OSAI_HARNESS_PORT ?? 4173);
 if (!Number.isInteger(port) || port < 1024 || port > 65535)
   throw new Error('Invalid harness port.');
 const baseURL = `http://127.0.0.1:${port}`;
 
+const reportName =
+  process.env.OSAI_WORKBENCH === 'true'
+    ? 'workbench'
+    : (process.env.OSAI_COMPONENT ?? 'command-palette');
+const reportDirectory = collection
+  ? `test-results/reference-collection/${host}/${reportName}`
+  : `test-results/${reportName}`;
+
 export default defineConfig({
+  metadata: { execution: executionMetadata(process.cwd(), collection) },
+  updateSnapshots: collection ? 'all' : 'none',
   testDir: './tests/browser',
   testMatch:
     process.env.OSAI_WORKBENCH === 'true'
@@ -32,12 +55,12 @@ export default defineConfig({
     [
       'json',
       {
-        outputFile: `test-results/${process.env.OSAI_WORKBENCH === 'true' ? 'workbench' : (process.env.OSAI_COMPONENT ?? 'command-palette')}/browser.json`,
+        outputFile: `${reportDirectory}/browser.json`,
       },
     ],
   ],
-  outputDir: `test-results/${process.env.OSAI_WORKBENCH === 'true' ? 'workbench' : (process.env.OSAI_COMPONENT ?? 'command-palette')}/browser-artifacts`,
-  snapshotPathTemplate: '{testDir}/baselines/{projectName}/{arg}{ext}',
+  outputDir: `${reportDirectory}/browser-artifacts`,
+  snapshotPathTemplate: snapshotTemplate(host),
   use: {
     baseURL,
     viewport: { width: 1280, height: 800 },

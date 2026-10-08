@@ -2,6 +2,7 @@ import { readFile, access } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { expect, it } from 'vitest';
 import { scanManagedAllocations } from './ownership.js';
+import { integrationPreflight } from './native-plan.js';
 import { parseSelection } from './selection.js';
 
 it('resolves repository skill references and executable selected-component commands', async () => {
@@ -31,4 +32,25 @@ it('resolves repository skill references and executable selected-component comma
     expect(
       scanManagedAllocations(example.source).some((issue) => issue.code === example.gate),
     ).toBe(true);
+});
+
+it('executes offline preflight examples without inventing connection or host smoke evidence', async () => {
+  const workflow = JSON.parse(await readFile('tests/workflows/authoring-v1.json', 'utf8'));
+  for (const example of workflow.integrationExamples) {
+    const result = integrationPreflight({
+      ...example,
+      capabilities: {
+        ...example,
+        contextInspection: false,
+        mentorEditing: false,
+        staticAssetIngestion: false,
+        studioAvailable: true,
+      },
+      identities: {},
+      nativeSmokeExecuted: false,
+    });
+    expect(result).toMatchObject(example.expected);
+    expect(result.tenantCalls).toEqual([]);
+    expect(result.nativeSmoke).toBe('not-executed');
+  }
 });

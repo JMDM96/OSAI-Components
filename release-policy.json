@@ -1,8 +1,8 @@
 {
   "schemaVersion": "2.0",
-  "policyVersion": "2.0.0",
+  "policyVersion": "2.1.0",
   "certification": {
-    "suiteVersion": "2.0.0",
+    "suiteVersion": "2.1.0",
     "evidenceFormat": "2.0",
     "independentObservations": true,
     "exactScenarios": true

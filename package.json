@@ -26,7 +26,7 @@
     "test:unit": "vitest run",
     "browsers:install": "tsx packages/build-tools/src/browser-cli.ts install chromium firefox webkit",
     "test:browser": "tsx packages/build-tools/src/browser-cli.ts test",
-    "test:visual:update": "tsx packages/build-tools/src/browser-cli.ts test --grep visual --update-snapshots",
+    "test:visual:update": "tsx packages/build-tools/src/browser-cli.ts collect",
     "build": "tsx packages/build-tools/src/cli.ts build",
     "validate": "tsx packages/build-tools/src/cli.ts validate",
     "inspect": "tsx packages/build-tools/src/cli.ts inspect",
