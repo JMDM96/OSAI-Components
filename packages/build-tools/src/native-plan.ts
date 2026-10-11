@@ -5,8 +5,12 @@ import type { ComponentManifest, JsonSchema, Target } from '@osai/contract-schem
 import type { ResourceMetadata } from '@osai/adapter-schema';
 import { inspectRelease } from './build.js';
 import { checksum, payloadChecksums, writeJson } from './release.js';
+import { generateOdcImplementation, validateNativeImplementation } from './native-template.js';
+import { generatePreviewSuite } from './native-preview.js';
+import type { PreviewSuite } from './native-preview.js';
+import type { NativeImplementation } from './native-template.js';
 
-export interface NativePlan {
+export interface LegacyNativePlan {
   schemaVersion: '2.0';
   componentId: string;
   version: string;
@@ -49,6 +53,13 @@ export interface NativePlan {
   checkpoint: { odc: 'not-executed'; o11: 'not-executed'; mobileWebview: 'not-executed' };
   planDigest: string;
 }
+export interface OdcNativePlan extends Omit<LegacyNativePlan, 'schemaVersion' | 'target'> {
+  schemaVersion: '3.0';
+  target: 'odc';
+  implementation: NativeImplementation;
+  preview: PreviewSuite;
+}
+export type NativePlan = LegacyNativePlan | OdcNativePlan;
 function nativeType(schema: JsonSchema): { nativeType: string; encoding: string } {
   if (schema.type === 'string') return { nativeType: 'Text', encoding: 'value' };
   if (schema.type === 'boolean') return { nativeType: 'Boolean', encoding: 'value' };
@@ -137,7 +148,7 @@ export async function generateNativePlan(releaseRoot: string, target: Target): P
       outputs: ['EnvelopeJson:Text'],
     },
   ];
-  const unsigned: Omit<NativePlan, 'planDigest'> = {
+  const unsigned: Omit<LegacyNativePlan, 'planDigest'> = {
     schemaVersion: '2.0',
     componentId: manifest.componentId,
     version: manifest.version,
@@ -193,9 +204,49 @@ export async function generateNativePlan(releaseRoot: string, target: Target): P
     },
     checkpoint: { odc: 'not-executed', o11: 'not-executed', mobileWebview: 'not-executed' },
   };
+  if (target === 'odc') {
+    const adapter = JSON.parse(
+      await readFile(join(releaseRoot, target, 'adapter.json'), 'utf8'),
+    ) as { namespace: string };
+    const implementation = generateOdcImplementation(manifest, resources, adapter.namespace);
+    const odc: Omit<OdcNativePlan, 'planDigest'> = {
+      ...unsigned,
+      schemaVersion: '3.0',
+      target: 'odc',
+      actions: actions.filter((action) => action.name !== 'RegisterCallback'),
+      implementation,
+      preview: generatePreviewSuite(manifest),
+    };
+    return { ...odc, planDigest: checksum(canonicalJson(odc)) };
+  }
   return { ...unsigned, planDigest: checksum(canonicalJson(unsigned)) };
 }
+export function inspectNativePlan(plan: NativePlan): {
+  format: string;
+  execution: 'supported' | 'historical-only';
+} {
+  if (
+    !['2.0', '3.0'].includes(plan.schemaVersion) ||
+    !['odc', 'o11-reactive'].includes(plan.target)
+  )
+    throw new Error('Unknown native plan format or target');
+  if (plan.schemaVersion === '3.0' && plan.target !== 'odc')
+    throw new Error('Native plan target/format mismatch');
+  if (plan.artifactDigest !== checksum(canonicalJson(plan.artifactChecksums)))
+    throw new Error('Native artifact inventory digest drift');
+  const { planDigest, ...unsigned } = plan;
+  if (planDigest !== checksum(canonicalJson(unsigned))) throw new Error('Native plan digest drift');
+  if (plan.schemaVersion === '3.0') validateNativeImplementation(plan.implementation);
+  return {
+    format: plan.schemaVersion,
+    execution:
+      plan.schemaVersion === '2.0' && plan.target === 'odc' ? 'historical-only' : 'supported',
+  };
+}
 export async function validateNativePlan(plan: NativePlan, releaseRoot: string): Promise<void> {
+  const inspection = inspectNativePlan(plan);
+  if (inspection.execution === 'historical-only')
+    throw new Error('Historical ODC plan is inspection-only; generate a new versioned handoff.');
   const expected = await generateNativePlan(releaseRoot, plan.target);
   if (canonicalJson(plan) !== canonicalJson(expected))
     throw new Error('Native plan or bound release drift. Regenerate the detached plan.');
@@ -235,6 +286,7 @@ export function reconciliation(
     fingerprint: string;
   }[];
 } {
+  if (plan.schemaVersion === '3.0') return { status: 'read-back-required', operations: [] };
   if (!state.appKey || !state.envKey)
     throw new Error('Resolve inspected app and environment identities before reconciliation.');
   if (state.partialFailure || !state.readBackComplete)
@@ -289,6 +341,12 @@ export function integrationProtocol(
   capabilities: IntegrationCapabilities,
   identities: { appKey?: string; envKey?: string },
   authority?: HumanAuthority,
+  transfer?: {
+    route: 'manual' | 'automated' | 'document';
+    inspected: boolean;
+    conflicting: boolean;
+    evidence: string[];
+  },
 ) {
   if (!capabilities.officialSkillAvailable)
     return {
@@ -314,7 +372,18 @@ export function integrationProtocol(
       next: 'Inspect in Studio and supply a read-back snapshot.',
       tenantCalls: [],
     };
-  if (!capabilities.mentorEditing || !capabilities.staticAssetIngestion)
+  const imported =
+    transfer?.inspected &&
+    !transfer.conflicting &&
+    transfer.route !== 'document' &&
+    transfer.evidence.length > 0;
+  if (transfer?.conflicting)
+    return {
+      status: 'resource-conflict',
+      next: 'Inspect conflicting resource identities before continuing.',
+      tenantCalls: [],
+    };
+  if (!capabilities.mentorEditing || (!capabilities.staticAssetIngestion && !imported))
     return {
       status: capabilities.studioAvailable ? 'studio-handoff' : 'manual-handoff',
       next: 'Import browser assets with Studio or an available authorized static-asset facility. Server external-library upload accepts .NET libraries and must not be used for UI assets.',
@@ -362,8 +431,22 @@ export function integrationPreflight(observations: {
   capabilities: IntegrationCapabilities;
   identities: { appKey?: string; envKey?: string };
   nativeSmokeExecuted: boolean;
+  transfer?: {
+    route: 'manual' | 'automated' | 'document';
+    inspected: boolean;
+    conflicting: boolean;
+    evidence: string[];
+  };
 }) {
+  const transfer = observations.transfer;
+  const imported =
+    !!transfer &&
+    transfer.route !== 'document' &&
+    transfer.inspected &&
+    !transfer.conflicting &&
+    transfer.evidence.length > 0;
   return {
+    transferCompletion: imported ? 'inspected' : transfer?.conflicting ? 'conflicting' : 'pending',
     package: observations.packageValid ? 'valid' : 'pending',
     certification: observations.browserQualified ? 'browser-verified' : 'pending',
     officialSkill: observations.capabilities.officialSkillAvailable ? 'available' : 'pending',
@@ -380,7 +463,8 @@ export function integrationPreflight(observations: {
       Boolean(observations.identities.appKey && observations.identities.envKey) &&
       observations.capabilities.contextInspection &&
       observations.capabilities.mentorEditing &&
-      observations.capabilities.staticAssetIngestion,
+      (observations.capabilities.staticAssetIngestion || imported) &&
+      !transfer?.conflicting,
     tenantCalls: [],
   };
 }

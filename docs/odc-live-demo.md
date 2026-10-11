@@ -1,6 +1,11 @@
 # Command palette: live ODC demo
 
-Verified on **October 7, 2026, America/Los_Angeles** (October 8 UTC).
+Historical checkpoint verified on **October 7, 2026, America/Los_Angeles** (October 8 UTC).
+The [current handoff](repeatable-odc-completion.md) supersedes this checkpoint:
+demo revision 7 references library 0.2.1 / revision 6, and all 17 native runtime
+cases have recorded passing observations, including Close-while-open,
+Toggle-to-close, SDK rejection/error delivery and sibling routing. The original
+observations below remain intact; they do not describe the latest recorded state.
 
 [Open OS AI Components Demo](https://personal-ypbfdmrf-dev.outsystems.app/OSAIComponentsDemo).
 Click **Open**, or press **Command+K** on this Mac. The page provides synthetic

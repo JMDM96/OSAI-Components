@@ -388,6 +388,7 @@ export async function buildRelease(
       ],
       csp: resourceCsp(manifest),
       nativeMapping:
+        (target === 'odc' ? 'odc-block@1.0: ' : '') +
         'Import all local assets, pin external dependencies, apply CSP, register logical URL/integrity mappings before Ready/create. Worker and CSS-relative asset paths must preserve their declared directory layout.',
     };
     await writeJson(join(targetRoot, 'resources.json'), resourceMetadata);

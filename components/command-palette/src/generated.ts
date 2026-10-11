@@ -1,5 +1,5 @@
-// Generated authoring bindings 1.0: command-palette@2.0.0. Do not edit.
-// Contract SHA-256: 336af78f7e7e1f03cdde8c6efc0527c47263ffedb944313e06cc477b443672b4
+// Generated authoring bindings 1.0: command-palette@3.0.0. Do not edit.
+// Contract SHA-256: 9bf74c6e38b0ef2d65a06684de755325d722058ec83369e6bff9fa39ff276dd3
 export type JsonValue =
   null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue | undefined };
 export type DeepReadonly<T> = T extends object

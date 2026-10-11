@@ -53,6 +53,14 @@ test('navigation is functional, keyboard accessible and survives deep-link reloa
   await expect(page.locator('#workspace')).toBeHidden();
   await page.reload();
   await expect(page.locator('#library')).toBeVisible();
+  await expect(
+    page
+      .locator('#catalog article')
+      .filter({
+        has: page.getByRole('heading', { name: 'command-palette', exact: true }),
+      })
+      .locator('p'),
+  ).toHaveText('3.0.0 · Production component');
   await page.getByRole('link', { name: 'Activity', exact: true }).click();
   await expect(page.locator('#activity')).toBeVisible();
   await expect(page.locator('#library')).toBeHidden();
@@ -81,7 +89,7 @@ test('switching component and target disposes prior ownership and isolates style
   await page.locator('#load').click();
   await expect(page.locator('iframe')).toHaveAttribute(
     'title',
-    `command-palette 2.0.0 ${String(info.project.metadata.target)}`,
+    `command-palette 3.0.0 ${String(info.project.metadata.target)}`,
   );
   await expect(page.frameLocator('iframe').locator('html')).toHaveAttribute('data-ready', 'true');
   const old = await page.evaluate(() => {
@@ -187,8 +195,20 @@ test('serves only selected graph paths and refuses traversal or absent releases'
 
 for (const view of ['library', 'workspace', 'activity'])
   test(`workbench visual: ${view}`, { tag: '@visual' }, async ({ page }) => {
-    // Fix only the readiness state for layout snapshots. A mask still changes size
-    // with the real evidence label; readiness semantics have separate gate tests.
+    // Keep the reviewed layout fixture stable across candidate releases. Real
+    // catalog versions are asserted by the navigation and component-switch tests.
+    await page.route('**/catalog', async (route) => {
+      const response = await route.fetch();
+      const catalog = (await response.json()) as { componentId: string; version: string }[];
+      await route.fulfill({
+        response,
+        json: catalog.map((item) =>
+          item.componentId === 'command-palette' ? { ...item, version: '2.0.0' } : item,
+        ),
+      });
+    });
+    // A mask still changes size with the real evidence label; readiness
+    // semantics have separate gate tests.
     await page.route('**/metadata?*', async (route) => {
       const response = await route.fetch();
       const metadata = (await response.json()) as Record<string, unknown>;

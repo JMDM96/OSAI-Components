@@ -133,3 +133,25 @@ are unchanged. Policy format 2.0 still reads historical suite 2.0.0 policies;
 that does not qualify a newly built 2.1.0 candidate. Registered 1.0.0 palette
 payloads remain immutable. The unregistered palette 2.0.0 candidate can be rebuilt
 with these certification inputs and needs fresh complete verification.
+
+## Repeatable ODC handoff versions
+
+The next command palette candidate is `3.0.0`. The registered `1.0.0` catalog entry
+and retained `2.0.0` trial package/handoff are historical; do not rebuild them in
+place. The local preservation inventory records missing historical directories
+explicitly rather than reconstructing their bytes.
+
+Component versions identify immutable payloads. Adapter/resource format `2.0` and
+bridge contract `1.0` are unchanged. ODC native-plan `3.0` adds the executable
+`odc-block@1.0` template; O11 retains native-plan `2.0`. Run-record `1.0` and preview
+suite `1.0` version independent evidence/workflow contracts. Browser certification
+suite/policy versions retain their separate meaning. A preview suite result does
+not qualify a native lane.
+
+ODC plan `2.0` is available for digest-checked historical inspection only. Generate
+a new plan for a new component payload before adopting the executable template.
+Unknown formats and incompatible targets fail closed. Template, snippet, resource
+or package changes invalidate the plan digest. Rollback means explicitly restoring
+a reviewed native release/reference with fresh inspection and authority; copying
+an old plan over current state is not a rollback mechanism. No automatic tenant
+migration or release rollback is implemented.

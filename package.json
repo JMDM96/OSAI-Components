@@ -33,7 +33,8 @@
     "verify": "tsx packages/build-tools/src/cli.ts verify",
     "release": "tsx packages/build-tools/src/cli.ts release",
     "reproduce": "tsx packages/build-tools/src/cli.ts reproduce",
-    "preview": "tsx packages/build-tools/src/cli.ts preview"
+    "preview": "tsx packages/build-tools/src/cli.ts preview",
+    "native-run": "tsx packages/build-tools/src/cli.ts native-run"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

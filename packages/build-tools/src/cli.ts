@@ -11,6 +11,11 @@ import { generateBindings } from './bindings.js';
 export async function main(args: string[]): Promise<void> {
   const root = process.cwd();
   const command = args[0] ?? 'build';
+  if (command === 'native-run') {
+    const { nativeRunCommand } = await import('./native-run.js');
+    console.log(JSON.stringify(await nativeRunCommand(args.slice(1)), null, 2));
+    return;
+  }
   if (command === 'scaffold') {
     if (args.length !== 2) throw new Error('Usage: npm run scaffold -- <component-id>');
     const { scaffoldComponent } = await import('./scaffold.js');

@@ -76,7 +76,17 @@ it('rejects plan edits and changed auxiliary bytes', async () => {
   await writeFile(join(altered, 'odc/workers/local.js'), 'changed');
   await expect(validateNativePlan(plan, altered)).rejects.toThrow('checksums');
 });
-it('reconciles create/update/unchanged/conflict and requires fresh read-back after partial failure', () => {
+it('retains O11 reconciliation and refuses fingerprint-only ODC read-back', async () => {
+  expect(
+    reconciliation(plan, {
+      appKey: 'a',
+      envKey: 'e',
+      partialFailure: false,
+      readBackComplete: true,
+      assets: [],
+    }),
+  ).toEqual({ status: 'read-back-required', operations: [] });
+  const legacy = await generateNativePlan(resources, 'o11-reactive');
   const state = {
     appKey: 'inspected-app-fixture',
     envKey: 'inspected-environment-fixture',
@@ -84,7 +94,7 @@ it('reconciles create/update/unchanged/conflict and requires fresh read-back aft
     readBackComplete: true,
     assets: [],
   };
-  const first = reconciliation(plan, state);
+  const first = reconciliation(legacy, state);
   expect(first.operations.every((operation) => operation.operation === 'create')).toBe(true);
   const assets = first.operations.map((operation) => ({
     key: operation.key,
@@ -92,21 +102,21 @@ it('reconciles create/update/unchanged/conflict and requires fresh read-back aft
     owner: `osai:${plan.componentId}`,
   }));
   expect(
-    reconciliation(plan, { ...state, assets }).operations.every(
+    reconciliation(legacy, { ...state, assets }).operations.every(
       (operation) => operation.operation === 'unchanged',
     ),
   ).toBe(true);
   assets[0]!.fingerprint = 'old';
   assets[1]!.owner = 'user';
-  const next = reconciliation(plan, { ...state, assets });
+  const next = reconciliation(legacy, { ...state, assets });
   expect(next.operations[0]!.operation).toBe('update');
   expect(next.operations[1]!.operation).toBe('conflict');
-  expect(reconciliation(plan, { ...state, assets, partialFailure: true })).toEqual({
+  expect(reconciliation(legacy, { ...state, assets, partialFailure: true })).toEqual({
     status: 'read-back-required',
     operations: [],
   });
-  expect(reconciliation(plan, { ...state, readBackComplete: false }).operations).toEqual([]);
-  expect(() => reconciliation(plan, { ...state, envKey: '' })).toThrow('identities');
+  expect(reconciliation(legacy, { ...state, readBackComplete: false }).operations).toEqual([]);
+  expect(() => reconciliation(legacy, { ...state, envKey: '' })).toThrow('identities');
 });
 it('keeps local preparation separate from native mutation, publishing, and deployment authority', () => {
   const all = {

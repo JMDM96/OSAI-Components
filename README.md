@@ -2,7 +2,7 @@
 
 A TypeScript component SDK and build pipeline for OutSystems Developer Cloud and OutSystems 11 Reactive/Mobile. A single component implementation produces two target-labelled browser asset packages. The command palette is the first reference component.
 
-The command palette also has a published **OS AI Components Demo** in Development. See the [live ODC demo guide](docs/odc-live-demo.md) for the application link, sample inputs, verified behavior and remaining native-verification limits. The [historical preflight](docs/odc-preflight.md) records the local qualification that preceded deployment.
+The current command-palette candidate is **3.0.0**. Its published **OS AI Components Demo** has recorded Development runtime evidence for all 17 preview cases. See the [current handoff](docs/repeatable-odc-completion.md) for completed qualification, unchanged native reconciliation and the remaining native-certification limits. The [original live demo guide](docs/odc-live-demo.md) and [preflight](docs/odc-preflight.md) preserve earlier checkpoints.
 
 ## Setup
 
@@ -44,7 +44,7 @@ Browser tests cover both target packages in Chromium, Firefox, and WebKit on Win
 ## Consume the output
 
 ```text
-dist/command-palette/2.0.0/
+dist/command-palette/3.0.0/
   odc/             Browser script, CSS, schemas, adapter, integration guide
   o11-reactive/    Same public contract, separate target metadata
   shared/          Types, dependency inventory, licenses, checksums
@@ -64,7 +64,7 @@ The package layers are `contract-schemas`, `component-sdk`, `runtime-bridge`, `a
 ## Release and support evidence
 
 ```powershell
-npm run release -- 2.0.0
+npm run release -- 3.0.0
 ```
 
 The release command runs all verification before registering an immutable internal version in `releases/catalog.json`. It does not publish a package or change any OutSystems tenant. Release and compatibility rules are in [distribution](docs/distribution.md) and [releasing](docs/releasing.md).

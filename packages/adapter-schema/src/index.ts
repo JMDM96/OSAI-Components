@@ -255,6 +255,33 @@ export function validateAdapter(
       ];
 }
 
+export const odcTemplate = 'odc-block@1.0' as const;
+export function odcNodeNames(contract: Pick<ComponentManifest, 'commands'>): string[] {
+  return [
+    'RegisterResources',
+    'Create',
+    'Update',
+    ...Object.keys(contract.commands).map((name) => `Command_${name}`),
+    'UnregisterCallback',
+    'Dispose',
+    'BuildConfiguration',
+    'BuildResources',
+    'Ready',
+    'ApplyConfiguration',
+    'ReadState',
+    'ResolveInstance',
+  ];
+}
+export function odcForwarderNames(contract: Pick<ComponentManifest, 'events'>): string[] {
+  return [
+    ...Object.keys(contract.events).map((name) => `Forward_${name}`),
+    ...(Object.hasOwn(contract.events, 'error') ? [] : ['NativeDiagnostic']),
+  ];
+}
+function executableOdc(adapter: Adapter): boolean {
+  return adapter.target === 'odc' && !!adapter.resources?.nativeMapping.startsWith(odcTemplate);
+}
+
 export function generateIntegrationGuide(adapter: Adapter): string {
   const api = adapter.namespace;
   if (adapter.resources) {
@@ -272,6 +299,9 @@ export function generateIntegrationGuide(adapter: Adapter): string {
     );
     return (
       generateIntegrationGuide({ ...legacy, schemaVersion: '1.0' }) +
+      (executableOdc(adapter)
+        ? `\n## Executable ODC handoff\n\nGenerate the detached ODC plan 3.0 using npm run native-plan -- --component ${adapter.componentId}. Its implementation uses ${odcTemplate}. Copy exact source, signatures, bindings and lifecycle branches for: ${[...odcNodeNames(adapter.publicContract), ...odcForwarderNames(adapter.publicContract)].join(', ')}. Callback registration is private; Forward_<event>(PayloadJson) takes positional Text. There is no public ClientAction-reference input. Fill named slots only with inspected native IDs and URLs. Required scripts follow resources.loadOrder before Ready; generated styles are asynchronous and reference counted. Use ReadState after loading to observe accepted configuration. Local glue execution does not prove native wiring. The detached preview suite 1.0 specifies native entry points and per-case evidence; keep publication, deployment, preview and exact served identity separate.\n`
+        : '') +
       `\n## Resource registration (format 2.0)\n\nBefore On Ready/create, import every asset listed in resources.json and satisfy its loadOrder, integrity, licenses and CSP declarations. External dependencies must be pinned and provided by the host; their remote bytes are not locally scanned. Replace placeholder URLs with inspected host resource URLs. Preserve directory relationships for CSS-relative resources. No screen-route inference is used.\n\n\x60\x60\x60javascript\nconst registration = ${JSON.stringify({ schemaVersion: '2.0', releaseId: resources.registration.releaseId, mappings }, null, 2)};\nconst result = JSON.parse(${api}.registerResources(${JSON.stringify(adapter.componentId)}, JSON.stringify(registration)));\nif (!result.ok) throw new Error(result.code);\n\x60\x60\x60\n\nDo not remap resources while instances are live. Branch on resources-not-registered, invalid-resource-mapping, disallowed-resource-origin and resources-in-use. registerResources validates supplied identities and URLs; host loading/SRI and the certified CSP must enforce the served bytes. JavaScript workers have no native SRI constructor: the host must serve the exact immutable checksummed worker bytes.\n`
     );
   }
@@ -314,7 +344,15 @@ export function generateMentorRecipe(adapter: Adapter) {
     steps: [
       'Resolve the user-supplied asset and environment; never invent opaque identifiers.',
       `Import ${adapter.assets.script} and ${adapter.assets.style} through Studio or an authorized asset-transfer tool.`,
-      'Use adapter.json and schemas to create a Library Block, inputs, events, and synchronous Client Actions.',
+      ...(executableOdc(adapter)
+        ? [
+            `Generate ODC plan 3.0; use ${odcTemplate} exact nodes: ${[...odcNodeNames(adapter.publicContract), ...odcForwarderNames(adapter.publicContract)].join(', ')}.`,
+            `Resolve implementation.slots from native inspection; capture every implementation.readBack entry and execute every preview.cases entry.`,
+            `Use private callbacks and positional Forward_<event>(PayloadJson); local tests do not prove native wiring.`,
+          ]
+        : [
+            'Use adapter.json and schemas to create a Library Block, inputs, events, and synchronous Client Actions.',
+          ]),
       'Wire Ready, Parameters Changed/guarded Render, and Destroy exactly as integration.md describes.',
       'Run the documented smoke suite and capture target-specific evidence.',
       'Publishing is a separate user-authorized operation.',

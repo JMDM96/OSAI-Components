@@ -1,6 +1,6 @@
 # Command palette
 
-The command palette is a dependency-free reference component for ODC and OS11 Reactive/Mobile. Its stable component ID is `command-palette`, its initial version is `1.0.0`, and its bridge contract is `1.0`. The generated target integration guide describes importing the exact JavaScript and CSS files into an OutSystems Library Block. Local browser verification does not establish tenant compatibility.
+The command palette is a dependency-free reference component for ODC and OS11 Reactive/Mobile. Its stable component ID is `command-palette`, its current candidate is `3.0.0`, and its bridge contract is `1.0`. The generated target integration guide describes importing the exact JavaScript and CSS files into an OutSystems Library Block. Local browser verification does not establish tenant compatibility. See the [current handoff](repeatable-odc-completion.md) for local qualification, recorded native runtime checks, and the remaining native evidence requirements.
 
 ## Configuration
 

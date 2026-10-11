@@ -76,6 +76,17 @@ function navigation() {
   }
 }
 window.addEventListener('hashchange', navigation);
+for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
+  link.addEventListener('click', (event) => {
+    if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
+      return;
+    // Keep fragment navigation on the current URL after load() replaces its query.
+    // Firefox can otherwise resolve a cached fragment href against the original
+    // document URL and reload the preview, losing its instance and activity.
+    event.preventDefault();
+    location.hash = link.hash;
+  });
+}
 navigation();
 function fields(
   container: HTMLElement,

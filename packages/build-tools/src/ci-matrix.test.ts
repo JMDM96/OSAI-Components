@@ -4,7 +4,7 @@ import type { CompatibilityEvidence } from '@osai/adapter-schema';
 
 it('includes every discovered production component plus explicit platform fixtures', async () => {
   const matrix = await qualificationMatrix(process.cwd());
-  expect(matrix).toContainEqual({ component: 'command-palette', version: '2.0.0', fixture: '' });
+  expect(matrix).toContainEqual({ component: 'command-palette', version: '3.0.0', fixture: '' });
   expect(matrix.filter((item) => item.fixture).map((item) => item.component)).toEqual([
     'minimal',
     'resources',
