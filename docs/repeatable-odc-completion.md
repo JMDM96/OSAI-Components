@@ -3,8 +3,11 @@
 **The command palette implementation and repeatable ODC pilot are complete.**
 OS AI Components Demo is published and deployed to Development at revision **7**,
 referencing OS AI Components **0.2.1 / revision 6**. All 17 native preview cases
-have passing runtime evidence, including all five Block events and actual SDK
-validation rejection. A fresh-context, read-only wrap established complete
+were freshly rerun and passed on 2026-10-11 against the final implementation,
+including all five Block events and actual SDK validation rejection. The
+[rerun report](command-palette-odc-rerun-2026-10-11.md) records all 17 results,
+36 observations and unchanged source/deployment identities. A fresh-context,
+read-only wrap established complete
 source/wiring read-back, reviewed ownership and an independent unchanged rerun.
 
 OpenSpec change `make-odc-integration-repeatable` has **32/32 tasks complete**.
@@ -46,18 +49,18 @@ neither runtime success nor operational repeatability promotes native qualificat
 All final checks pass after the load-order, continuation and workbench corrections.
 Earlier passing and failing reports are preserved.
 
-| Check                                                | Final result                                                                                   |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Formatting, generated bindings, lint and type checks | Passed                                                                                         |
-| Unit suite                                           | 347 passed                                                                                     |
-| Command palette browser qualification                | 300 passed                                                                                     |
-| Explicit resource fixture                            | 120 passed                                                                                     |
-| Explicit minimal fixture                             | 78 passed                                                                                      |
-| Workbench behavior, accessibility and visuals        | 48 passed                                                                                      |
-| Clean reproduction                                   | All three packages byte-identical in two independent workspaces each                           |
-| OpenSpec                                             | Eight durable specs validate strictly; completed change archived with 32/32 tasks              |
-| Native read-back and reconciliation                  | 36 entries unchanged; zero conflicts; portable export validates after relocation               |
-| Native runtime preview                               | 17 cases have passing observations; aggregate gate remains limited by missing platform version |
+| Check                                                | Final result                                                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Formatting, generated bindings, lint and type checks | Passed                                                                                        |
+| Unit suite                                           | 347 passed                                                                                    |
+| Command palette browser qualification                | 300 passed                                                                                    |
+| Explicit resource fixture                            | 120 passed                                                                                    |
+| Explicit minimal fixture                             | 78 passed                                                                                     |
+| Workbench behavior, accessibility and visuals        | 48 passed                                                                                     |
+| Clean reproduction                                   | All three packages byte-identical in two independent workspaces each                          |
+| OpenSpec                                             | Eight durable specs validate strictly; completed change archived with 32/32 tasks             |
+| Native read-back and reconciliation                  | 36 entries unchanged; zero conflicts; portable export validates after relocation              |
+| Native runtime preview                               | All 17 rerun in ODC on 2026-10-11; aggregate gate remains limited by missing platform version |
 
 Final qualification logs are `test-results/wrap-*-complete-verify.log`; the workbench
 result is `test-results/wrap-workbench-routing-fix.log`. The assembled local handoff
@@ -73,6 +76,7 @@ already absent and remains absent; no historical bytes were reconstructed.
 Policy thresholds and reviewed screenshot files remain unchanged.
 
 The current native handoff is
+`.build/odc-rerun-2026-10-11/export/run.json`, extending the preserved
 `.build/command-palette-wrap-2026-10-11/qualified-export/run.json`.
 It includes 36 complete inspected entries, reviewed ownership, a confirmed baseline,
 two independently retrieved library graphs, the fresh consumer graph, exact default
